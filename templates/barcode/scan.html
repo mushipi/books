@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+
+{% block title %}バーコードスキャン | 本管理アプリ{% endblock %}
+
+{% block extra_css %}
+<style>
+    #scanner-container {
+        max-width: 100%;
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    #scanner-container video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.2);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        z-index: 10;
+    }
+    
+    .scan-indicator {
+        width: 250px;
+        height: 1px;
+        background-color: red;
+        box-shadow: 0 0 8px red;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translateX(-50%);
+        animation: scan 2s infinite;
+    }
+    
+    @keyframes scan {
+        0% {
+            top: 20%;
+        }
+        50% {
+            top: 80%;
+        }
+        100% {
+            top: 20%;
+        }
+    }
+    
+    .scanner-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .camera-select {
+        margin-top: 10px;
+        margin-bottom: 20px;
+    }
+    
+    #result-container {
+        display: none;
+        margin-top: 20px;
+    }
+    
+    .result-box {
+        border-left: 4px solid #007bff;
+        padding-left: 15px;
+    }
+    
+    .manual-input {
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="mb-3">バーコードスキャン</h1>
+        <p>書籍のISBNコードまたはJANコードをスキャンして情報を取得します。</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- カメラ選択 -->
+        <div class="camera-select">
+            <label for="camera-select" class="form-label"><i class="fas fa-camera me-2"></i>カメラ選択</label>
+            <select id="camera-select" class="form-select">
+                <option value="">カメラを選択してください</option>
+            </select>
+        </div>
+        
+        <!-- スキャナーコンテナ -->
+        <div id="scanner-container" class="mb-3">
+            <div class="overlay" id="camera-message">
+                <h4><i class="fas fa-camera me-2"></i>カメラ選択後にスキャンを開始します</h4>
+                <p>スキャンしたいバーコードをカメラに向けてください</p>
+            </div>
+            <div class="scan-indicator"></div>
+        </div>
+        
+        <!-- スキャナーボタン -->
+        <div class="scanner-buttons mb-4">
+            <button id="start-button" class="btn btn-primary">
+                <i class="fas fa-play me-1"></i> スキャン開始
+            </button>
+            <button id="stop-button" class="btn btn-secondary" disabled>
+                <i class="fas fa-stop me-1"></i> スキャン停止
+            </button>
+            <button id="torch-button" class="btn btn-outline-dark d-none">
+                <i class="fas fa-lightbulb me-1"></i> ライト
+            </button>
+        </div>
+        
+        <!-- 手動入力フォーム -->
+        <div class="manual-input">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-keyboard me-2"></i>手動入力</h5>
+                </div>
+                <div class="card-body">
+                    <form id="manual-form">
+                        <div class="mb-3">
+                            <label for="isbn-input" class="form-label">ISBN/JANコード</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="isbn-input" placeholder="例: 9784774142230" minlength="10" maxlength="13" required>
+                                <button class="btn btn-primary" type="submit">検索</button>
+                            </div>
+                            <div class="form-text">ISBNコード（10桁または13桁）またはJANコード（13桁）を入力してください</div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- スキャン結果 -->
+        <div id="result-container" class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-search me-2"></i>検索結果</h5>
+            </div>
+            <div class="card-body">
+                <div id="spinner" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">書籍情報を検索中...</p>
+                </div>
+                
+                <div id="result-error" class="d-none">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span id="error-message"></span>
+                    </div>
+                </div>
+                
+                <div id="result-success" class="d-none">
+                    <div class="result-box mb-3">
+                        <h5 id="book-title" class="mb-1"></h5>
+                        <p class="mb-1" id="book-author"></p>
+                        <p class="text-muted mb-1" id="book-publisher"></p>
+                        <p class="mb-0">
+                            <small class="text-muted" id="book-isbn"></small>
+                        </p>
+                    </div>
+                    
+                    <div class="cover-image my-3 text-center">
+                        <img id="book-cover" class="img-fluid img-thumbnail" alt="表紙画像">
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a id="register-link" href="#" class="btn btn-success">
+                            <i class="fas fa-plus me-1"></i> この本を登録する
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 使い方ガイド -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>使い方</h5>
+            </div>
+            <div class="card-body">
+                <ol class="mb-0">
+                    <li>カメラを選択して「スキャン開始」ボタンをクリックします</li>
+                    <li>書籍のバーコード（ISBN/JANコード）をカメラに向けます</li>
+                    <li>バーコードが検出されると自動的に書籍情報を検索します</li>
+                    <li>情報が見つかった場合は「登録」ボタンをクリックします</li>
+                    <li>バーコードがスキャンできない場合は手動で入力することもできます</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- QuaggaJS バーコードスキャンライブラリ -->
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.2/dist/quagga.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // 変数宣言
+        let quaggaInitialized = false;
+        let torchAvailable = false;
+        let torchOn = false;
+        let lastDetectedBarcode = null;
+        let lastDetectedAt = 0;
+        let currentBookData = null;
+        
+        // カメラ一覧の取得
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+            navigator.mediaDevices.enumerateDevices()
+                .then(function(devices) {
+                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                    const cameraSelect = $('#camera-select');
+                    
+                    // カメラデバイスがない場合
+                    if (videoDevices.length === 0) {
+                        cameraSelect.prop('disabled', true);
+                        cameraSelect.empty().append($('<option></option>').text('利用可能なカメラがありません'));
+                        $('#start-button').prop('disabled', true);
+                        $('#camera-message h4').text('カメラが見つかりません');
+                        $('#camera-message p').text('カメラへのアクセスが許可されていないか、カメラが接続されていません');
+                        return;
+                    }
+                    
+                    // カメラデバイスの選択肢を追加
+                    cameraSelect.empty().append($('<option></option>').text('カメラを選択してください').val(''));
+                    videoDevices.forEach(device => {
+                        let label = device.label || `カメラ ${cameraSelect.children().length}`;
+                        cameraSelect.append($('<option></option>').text(label).val(device.deviceId));
+                    });
+                    
+                    // 前回選択されたカメラがあれば自動選択
+                    const savedCameraId = localStorage.getItem('selectedCameraId');
+                    if (savedCameraId) {
+                        cameraSelect.val(savedCameraId);
+                    }
+                })
+                .catch(function(err) {
+                    console.error('カメラデバイスの取得エラー:', err);
+                    $('#camera-message h4').text('カメラへのアクセスエラー');
+                    $('#camera-message p').text('カメラへのアクセス許可を確認してください');
+                });
+        }
+        
+        // カメラ選択変更時の処理
+        $('#camera-select').change(function() {
+            const deviceId = $(this).val();
+            if (deviceId) {
+                localStorage.setItem('selectedCameraId', deviceId);
+                
+                // すでにQuaggaが初期化されている場合は一旦停止
+                if (quaggaInitialized) {
+                    stopScanner();
+                }
+            }
+        });
+        
+        // スキャン開始ボタン押下時の処理
+        $('#start-button').click(function() {
+            const deviceId = $('#camera-select').val();
+            if (!deviceId) {
+                alert('カメラを選択してください');
+                return;
+            }
+            
+            startScanner(deviceId);
+        });
+        
+        // スキャン停止ボタン押下時の処理
+        $('#stop-button').click(function() {
+            stopScanner();
+        });
+        
+        // ライトボタン押下時の処理
+        $('#torch-button').click(function() {
+            toggleTorch();
+        });
+        
+        // 手動入力フォーム送信時の処理
+        $('#manual-form').submit(function(e) {
+            e.preventDefault();
+            const isbn = $('#isbn-input').val().trim();
+            if (isbn) {
+                lookupBookInfo(isbn);
+            }
+        });
+        
+        // スキャナー初期化・開始
+        function startScanner(deviceId) {
+            // UIの更新
+            $('#start-button').prop('disabled', true);
+            $('#stop-button').prop('disabled', false);
+            
+            // Quagga初期化パラメータ
+            const config = {
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#scanner-container'),
+                    constraints: {
+                        width: 1280,
+                        height: 720,
+                        deviceId: deviceId,
+                        facingMode: "environment"
+                    },
+                },
+                locator: {
+                    patchSize: "medium",
+                    halfSample: true
+                },
+                numOfWorkers: 2,
+                frequency: 10,
+                decoder: {
+                    readers: [
+                        "ean_reader",
+                        "ean_8_reader",
+                        "isbn_reader"
+                    ]
+                },
+                locate: true
+            };
+            
+            // Quagga初期化
+            Quagga.init(config, function(err) {
+                if (err) {
+                    console.error('Quagga初期化エラー:', err);
+                    $('#camera-message h4').text('カメラの起動に失敗しました');
+                    $('#camera-message p').text('別のカメラを選択するか、ページを再読み込みしてください');
+                    $('#start-button').prop('disabled', false);
+                    $('#stop-button').prop('disabled', true);
+                    return;
+                }
+                
+                // 初期化成功
+                quaggaInitialized = true;
+                $('#camera-message').hide();
+                
+                // ライト機能の確認
+                const track = Quagga.CameraAccess.getActiveTrack();
+                if (track && typeof track.getCapabilities === 'function') {
+                    const capabilities = track.getCapabilities();
+                    torchAvailable = capabilities.torch || false;
+                    
+                    // ライト機能がある場合はボタンを表示
+                    if (torchAvailable) {
+                        $('#torch-button').removeClass('d-none');
+                    }
+                }
+                
+                // スキャン開始
+                Quagga.start();
+            });
+            
+            // バーコード検出時の処理
+            Quagga.onDetected(function(result) {
+                const code = result.codeResult.code;
+                const now = new Date().getTime();
+                
+                // 同じバーコードの連続検出防止（3秒間）
+                if (lastDetectedBarcode === code && now - lastDetectedAt < 3000) {
+                    return;
+                }
+                
+                // 検出結果の更新
+                lastDetectedBarcode = code;
+                lastDetectedAt = now;
+                
+                // 効果音再生
+                const beep = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...'); // Base64エンコードされた短い効果音
+                beep.play();
+                
+                // 書籍情報の検索
+                lookupBookInfo(code);
+            });
+        }
+        
+        // スキャナー停止
+        function stopScanner() {
+            if (quaggaInitialized) {
+                Quagga.stop();
+                quaggaInitialized = false;
+                
+                // UIの更新
+                $('#start-button').prop('disabled', false);
+                $('#stop-button').prop('disabled', true);
+                $('#torch-button').addClass('d-none');
+                $('#camera-message').show();
+                
+                // ライトをオフにする
+                if (torchOn) {
+                    toggleTorch();
+                }
+            }
+        }
+        
+        // ライトの切り替え
+        function toggleTorch() {
+            if (!torchAvailable) return;
+            
+            const track = Quagga.CameraAccess.getActiveTrack();
+            if (track && typeof track.applyConstraints === 'function') {
+                track.applyConstraints({
+                    advanced: [{ torch: !torchOn }]
+                }).then(() => {
+                    torchOn = !torchOn;
+                    $('#torch-button').toggleClass('btn-outline-dark btn-warning');
+                }).catch(err => {
+                    console.error('ライト操作エラー:', err);
+                });
+            }
+        }
+        
+        // 書籍情報の検索
+        function lookupBookInfo(code) {
+            // 表示初期化
+            $('#result-container').show();
+            $('#spinner').show();
+            $('#result-error').addClass('d-none');
+            $('#result-success').addClass('d-none');
+            
+            // APIリクエスト
+            $.ajax({
+                url: '/barcode/lookup',
+                data: { code: code },
+                success: function(response) {
+                    if (response.success) {
+                        // 書籍情報の表示
+                        displayBookInfo(response.book);
+                    } else {
+                        // エラーメッセージの表示
+                        $('#spinner').hide();
+                        $('#result-error').removeClass('d-none');
+                        $('#error-message').text(response.message || '書籍情報が見つかりませんでした');
+                    }
+                },
+                error: function() {
+                    // エラーメッセージの表示
+                    $('#spinner').hide();
+                    $('#result-error').removeClass('d-none');
+                    $('#error-message').text('サーバーとの通信に失敗しました');
+                }
+            });
+        }
+        
+        // 書籍情報の表示
+        function displayBookInfo(bookData) {
+            currentBookData = bookData;
+            
+            // データの設定
+            $('#book-title').text(bookData.title || '不明なタイトル');
+            $('#book-author').text(bookData.author || '著者不明');
+            $('#book-publisher').text(bookData.publisher || '');
+            $('#book-isbn').text(bookData.isbn || '');
+            
+            // 表紙画像の設定
+            if (bookData.cover_image_path) {
+                $('#book-cover').attr('src', '/static/' + bookData.cover_image_path);
+            } else if (bookData.cover_url) {
+                $('#book-cover').attr('src', bookData.cover_url);
+            } else {
+                $('#book-cover').attr('src', '/static/img/no-cover.jpg');
+            }
+            
+            // 登録リンクの設定
+            let registerUrl = '/books/new?';
+            registerUrl += 'isbn=' + encodeURIComponent(bookData.isbn || '');
+            registerUrl += '&title=' + encodeURIComponent(bookData.title || '');
+            registerUrl += '&author=' + encodeURIComponent(bookData.author || '');
+            registerUrl += '&publisher=' + encodeURIComponent(bookData.publisher || '');
+            registerUrl += '&published_date=' + encodeURIComponent(bookData.published_date || '');
+            registerUrl += '&price=' + encodeURIComponent(bookData.price || '');
+            registerUrl += '&page_count=' + encodeURIComponent(bookData.page_count || '');
+            registerUrl += '&cover_image_path=' + encodeURIComponent(bookData.cover_image_path || '');
+            
+            $('#register-link').attr('href', registerUrl);
+            
+            // 表示の切り替え
+            $('#spinner').hide();
+            $('#result-success').removeClass('d-none');
+        }
+    });
+</script>
+{% endblock %}

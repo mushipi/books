@@ -1,0 +1,721 @@
+{% extends "base.html" %}
+
+{% block title %}バーコードスキャン | 本管理アプリ{% endblock %}
+
+{% block extra_css %}
+<style>
+    #scanner-container {
+        max-width: 100%;
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        min-height: 300px;
+    }
+    
+    #scanner-container video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.2);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        z-index: 10;
+    }
+    
+    .scan-indicator {
+        width: 250px;
+        height: 1px;
+        background-color: red;
+        box-shadow: 0 0 8px red;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translateX(-50%);
+        animation: scan 2s infinite;
+    }
+    
+    @keyframes scan {
+        0% {
+            top: 20%;
+        }
+        50% {
+            top: 80%;
+        }
+        100% {
+            top: 20%;
+        }
+    }
+    
+    .scanner-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .camera-select {
+        margin-top: 10px;
+        margin-bottom: 20px;
+    }
+    
+    #result-container {
+        display: none;
+        margin-top: 20px;
+    }
+    
+    .result-box {
+        border-left: 4px solid #007bff;
+        padding-left: 15px;
+    }
+    
+    .manual-input {
+        margin-top: 20px;
+    }
+    
+    .camera-status {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 4px;
+    }
+    
+    .status-success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .status-error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    /* モバイル向け追加スタイル */
+    @media (max-width: 767px) {
+        #scanner-container {
+            min-height: 240px;
+        }
+        
+        .scan-indicator {
+            width: 200px;
+        }
+        
+        .camera-selection-mobile {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .camera-selection-mobile button {
+            margin: 0 5px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="mb-3">バーコードスキャン</h1>
+        <p>書籍のISBNコードまたはJANコードをスキャンして情報を取得します。</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- カメラ状態表示 -->
+        <div id="camera-status" class="camera-status mb-3 d-none"></div>
+        
+        <!-- PCでのカメラ選択 (モバイルでは非表示) -->
+        <div class="camera-select d-none d-md-block">
+            <label for="camera-select" class="form-label"><i class="fas fa-camera me-2"></i>カメラ選択</label>
+            <select id="camera-select" class="form-select">
+                <option value="">カメラを選択してください</option>
+            </select>
+            <button id="refresh-cameras" class="btn btn-outline-secondary mt-2">
+                <i class="fas fa-sync-alt me-1"></i> カメラリストを更新
+            </button>
+        </div>
+        
+        <!-- モバイル向けカメラ切り替えボタン -->
+        <div class="camera-selection-mobile d-md-none mb-3">
+            <button id="camera-front" class="btn btn-outline-primary">
+                <i class="fas fa-user me-1"></i> フロントカメラ
+            </button>
+            <button id="camera-back" class="btn btn-outline-primary">
+                <i class="fas fa-camera me-1"></i> バックカメラ
+            </button>
+        </div>
+        
+        <!-- スキャナーコンテナ -->
+        <div id="scanner-container" class="mb-3">
+            <div class="overlay" id="camera-message">
+                <h4><i class="fas fa-camera me-2"></i>スキャン開始ボタンをクリックしてください</h4>
+                <p>スキャンしたいバーコードをカメラに向けてください</p>
+            </div>
+            <div class="scan-indicator"></div>
+        </div>
+        
+        <!-- スキャナーボタン -->
+        <div class="scanner-buttons mb-4">
+            <button id="start-button" class="btn btn-primary">
+                <i class="fas fa-play me-1"></i> スキャン開始
+            </button>
+            <button id="stop-button" class="btn btn-secondary" disabled>
+                <i class="fas fa-stop me-1"></i> スキャン停止
+            </button>
+        </div>
+        
+        <!-- 手動入力フォーム -->
+        <div class="manual-input">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-keyboard me-2"></i>手動入力</h5>
+                </div>
+                <div class="card-body">
+                    <form id="manual-form">
+                        <div class="mb-3">
+                            <label for="isbn-input" class="form-label">ISBN/JANコード</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="isbn-input" placeholder="例: 9784774142230" minlength="10" maxlength="13" required>
+                                <button class="btn btn-primary" type="submit">検索</button>
+                            </div>
+                            <div class="form-text">ISBNコード（10桁または13桁）またはJANコード（13桁）を入力してください</div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- スキャン結果 -->
+        <div id="result-container" class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-search me-2"></i>検索結果</h5>
+            </div>
+            <div class="card-body">
+                <div id="spinner" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">書籍情報を検索中...</p>
+                </div>
+                
+                <div id="result-error" class="d-none">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span id="error-message"></span>
+                    </div>
+                </div>
+                
+                <div id="result-success" class="d-none">
+                    <div class="result-box mb-3">
+                        <h5 id="book-title" class="mb-1"></h5>
+                        <p class="mb-1" id="book-author"></p>
+                        <p class="text-muted mb-1" id="book-publisher"></p>
+                        <p class="mb-0">
+                            <small class="text-muted" id="book-isbn"></small>
+                        </p>
+                    </div>
+                    
+                    <div class="cover-image my-3 text-center">
+                        <img id="book-cover" class="img-fluid img-thumbnail" alt="表紙画像">
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a id="register-link" href="#" class="btn btn-success">
+                            <i class="fas fa-plus me-1"></i> この本を登録する
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 使い方ガイド -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>使い方</h5>
+            </div>
+            <div class="card-body">
+                <ol class="mb-0">
+                    <li>「スキャン開始」ボタンをクリックしてカメラを起動します</li>
+                    <li>スマホの場合は「フロントカメラ」か「バックカメラ」を選択します</li>
+                    <li>書籍のバーコード（ISBN/JANコード）をカメラに向けます</li>
+                    <li>バーコードが検出されると自動的に書籍情報を検索します</li>
+                    <li>情報が見つかった場合は「登録」ボタンをクリックします</li>
+                    <li>バーコードがスキャンできない場合は手動で入力することもできます</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- QuaggaJS バーコードスキャンライブラリ - オリジナルバージョン -->
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // デバッグ情報 - ブラウザのAPIサポート状況確認
+        console.log("ブラウザ情報：", navigator.userAgent);
+        console.log("navigator.mediaDevices サポート: ", !!navigator.mediaDevices);
+        console.log("navigator.mediaDevices.getUserMedia サポート: ", !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+        console.log("navigator.getUserMedia サポート（レガシー）: ", !!(navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia));
+        
+        // 変数宣言
+        let quaggaInitialized = false;
+        let lastDetectedBarcode = null;
+        let lastDetectedAt = 0;
+        let currentBookData = null;
+        let currentFacingMode = "environment"; // デフォルトはバックカメラ（環境向き）
+        let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // ログ記録とデバッグの強化
+        function logInfo(message, data) {
+            console.log(`[INFO] ${message}`, data || '');
+        }
+        
+        function logError(message, error) {
+            console.error(`[ERROR] ${message}`, error || '');
+        }
+        
+        // カメラへのアクセス許可を確認
+        async function checkCameraPermission() {
+            try {
+                logInfo('カメラ権限を確認中...');
+                // 一時的にカメラにアクセスして、権限があるかを確認
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: currentFacingMode } 
+                });
+                
+                // 使用後、ストリームを停止
+                stream.getTracks().forEach(track => track.stop());
+                
+                logInfo('カメラ権限が確認されました');
+                
+                // モバイルでない場合はカメラリストを更新
+                if (!isMobile) {
+                    updateCameraList();
+                } else {
+                    // モバイルの場合はバックカメラをデフォルトに
+                    $('#camera-back').addClass('btn-primary').removeClass('btn-outline-primary');
+                    $('#camera-front').removeClass('btn-primary').addClass('btn-outline-primary');
+                }
+                
+                // 成功メッセージを表示
+                showStatus('カメラへのアクセス権限があります。「スキャン開始」ボタンをクリックしてください。', 'success');
+                $('#start-button').prop('disabled', false);
+                
+                return true;
+            } catch (error) {
+                logError('カメラアクセスエラー:', error);
+                
+                // エラーメッセージを表示
+                if (error.name === 'NotAllowedError') {
+                    showStatus('カメラへのアクセスが許可されていません。ブラウザの設定でカメラへのアクセスを許可してください。', 'error');
+                } else if (error.name === 'NotFoundError') {
+                    showStatus('カメラが見つかりません。カメラが接続されているか確認してください。', 'error');
+                } else {
+                    showStatus(`カメラエラー: ${error.message}`, 'error');
+                }
+                
+                return false;
+            }
+        }
+        
+        // カメラリストの更新 (PCの場合のみ)
+        async function updateCameraList() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                showStatus('このブラウザはカメラの取得に対応していません。', 'error');
+                return;
+            }
+            
+            try {
+                logInfo('カメラリストを取得中...');
+                // 一時的にカメラにアクセスして、デバイス名を取得できるようにする
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                
+                // デバイスリストを取得
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                
+                // 使用後、ストリームを停止
+                stream.getTracks().forEach(track => track.stop());
+                
+                // ビデオ入力デバイスだけをフィルタリング
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                const cameraSelect = $('#camera-select');
+                
+                logInfo(`${videoDevices.length}台のカメラを検出`, videoDevices);
+                
+                // カメラデバイスがない場合
+                if (videoDevices.length === 0) {
+                    cameraSelect.prop('disabled', true);
+                    cameraSelect.empty().append($('<option></option>').text('利用可能なカメラがありません'));
+                    $('#start-button').prop('disabled', true);
+                    $('#camera-message h4').text('カメラが見つかりません');
+                    $('#camera-message p').text('カメラが接続されていません');
+                    return;
+                }
+                
+                // カメラデバイスの選択肢を追加
+                cameraSelect.empty().append($('<option></option>').text('カメラを選択してください').val(''));
+                videoDevices.forEach((device, index) => {
+                    let label = device.label || `カメラ ${index + 1}`;
+                    cameraSelect.append($('<option></option>').text(label).val(device.deviceId));
+                });
+                
+                // 前回選択されたカメラがあれば自動選択
+                const savedCameraId = localStorage.getItem('selectedCameraId');
+                if (savedCameraId) {
+                    // 前回のカメラが現在のリストに存在するか確認
+                    const deviceExists = videoDevices.some(device => device.deviceId === savedCameraId);
+                    if (deviceExists) {
+                        cameraSelect.val(savedCameraId);
+                    }
+                }
+                
+                // カメラが1つしかない場合は自動選択
+                if (videoDevices.length === 1) {
+                    cameraSelect.val(videoDevices[0].deviceId);
+                    localStorage.setItem('selectedCameraId', videoDevices[0].deviceId);
+                }
+                
+                // UIの更新
+                cameraSelect.prop('disabled', false);
+                $('#start-button').prop('disabled', false);
+                
+                showStatus(`${videoDevices.length}台のカメラが見つかりました。スキャン開始ボタンをクリックしてください。`, 'success');
+            } catch (error) {
+                logError('カメラリスト取得エラー:', error);
+                showStatus(`カメラリスト取得エラー: ${error.message}`, 'error');
+            }
+        }
+        
+        // ステータス表示
+        function showStatus(message, type) {
+            const statusElement = $('#camera-status');
+            statusElement.removeClass('d-none status-success status-error');
+            
+            if (type === 'success') {
+                statusElement.addClass('status-success');
+            } else if (type === 'error') {
+                statusElement.addClass('status-error');
+            }
+            
+            statusElement.html(`<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i> ${message}`);
+        }
+        
+        // 初期化時にカメラ権限を確認
+        checkCameraPermission();
+        
+        // カメラリスト更新ボタンのイベント
+        $('#refresh-cameras').click(function() {
+            logInfo('カメラリスト更新ボタンがクリックされました');
+            checkCameraPermission();
+        });
+        
+        // フロントカメラボタンのイベント（モバイル用）
+        $('#camera-front').click(function() {
+            logInfo('フロントカメラボタンがクリックされました');
+            currentFacingMode = "user";
+            $(this).addClass('btn-primary').removeClass('btn-outline-primary');
+            $('#camera-back').removeClass('btn-primary').addClass('btn-outline-primary');
+            
+            // すでにQuaggaが初期化されている場合は一旦停止して再起動
+            if (quaggaInitialized) {
+                stopScanner();
+                startScanner();
+            }
+        });
+        
+        // バックカメラボタンのイベント（モバイル用）
+        $('#camera-back').click(function() {
+            logInfo('バックカメラボタンがクリックされました');
+            currentFacingMode = "environment";
+            $(this).addClass('btn-primary').removeClass('btn-outline-primary');
+            $('#camera-front').removeClass('btn-primary').addClass('btn-outline-primary');
+            
+            // すでにQuaggaが初期化されている場合は一旦停止して再起動
+            if (quaggaInitialized) {
+                stopScanner();
+                startScanner();
+            }
+        });
+        
+        // PCでのカメラ選択変更時の処理
+        $('#camera-select').change(function() {
+            const deviceId = $(this).val();
+            logInfo('カメラが選択されました', deviceId);
+            
+            if (deviceId) {
+                localStorage.setItem('selectedCameraId', deviceId);
+                
+                // すでにQuaggaが初期化されている場合は一旦停止
+                if (quaggaInitialized) {
+                    stopScanner();
+                }
+                
+                // 選択されたカメラの情報を表示
+                showStatus('カメラが選択されました。「スキャン開始」ボタンをクリックしてください。', 'success');
+            }
+        });
+        
+        // スキャン開始ボタン押下時の処理
+        $('#start-button').click(function() {
+            logInfo('スキャン開始ボタンがクリックされました');
+            
+            // モバイルではカメラ選択は不要
+            if (!isMobile) {
+                const deviceId = $('#camera-select').val();
+                if (!deviceId) {
+                    showStatus('カメラを選択してください。', 'error');
+                    return;
+                }
+            }
+            
+            showStatus('カメラを起動しています...', 'success');
+            startScanner();
+        });
+        
+        // スキャン停止ボタン押下時の処理
+        $('#stop-button').click(function() {
+            logInfo('スキャン停止ボタンがクリックされました');
+            stopScanner();
+            showStatus('スキャンを停止しました。', 'success');
+        });
+        
+        // 手動入力フォーム送信時の処理
+        $('#manual-form').submit(function(e) {
+            e.preventDefault();
+            const isbn = $('#isbn-input').val().trim();
+            if (isbn) {
+                logInfo('手動入力', isbn);
+                lookupBookInfo(isbn);
+            }
+        });
+        
+        // スキャナー初期化・開始
+        function startScanner() {
+            // UIの更新
+            $('#start-button').prop('disabled', true);
+            $('#stop-button').prop('disabled', false);
+            
+            let constraints;
+            
+            // モバイルとPC用で異なる設定
+            if (isMobile) {
+                logInfo(`モバイルカメラを起動中 (向き: ${currentFacingMode})`);
+                constraints = {
+                    width: { min: 640, ideal: 1280, max: 1920 },
+                    height: { min: 480, ideal: 720, max: 1080 },
+                    facingMode: currentFacingMode
+                };
+            } else {
+                const deviceId = $('#camera-select').val();
+                logInfo(`PCカメラを起動中 (デバイスID: ${deviceId})`);
+                constraints = {
+                    width: { min: 640, ideal: 1280, max: 1920 },
+                    height: { min: 480, ideal: 720, max: 1080 },
+                    deviceId: deviceId ? { exact: deviceId } : undefined
+                };
+            }
+            
+            // Quagga初期化パラメータ - シンプルな設定
+            const config = {
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#scanner-container'),
+                    constraints: constraints
+                },
+                locator: {
+                    patchSize: "medium",
+                    halfSample: true
+                },
+                numOfWorkers: 2,
+                decoder: {
+                    readers: [
+                        "ean_reader",
+                        "ean_8_reader",
+                        "code_128_reader",
+                        "code_39_reader",
+                        "upc_reader",
+                        "upc_e_reader"
+                    ]
+                }
+            };
+            
+            logInfo('Quagga設定', config);
+            
+            // Quagga初期化
+            try {
+                Quagga.init(config, function(err) {
+                    if (err) {
+                        logError('Quagga初期化エラー:', err);
+                        showStatus(`カメラの起動に失敗しました: ${err.message || 'エラーが発生しました'}`, 'error');
+                        $('#camera-message h4').text('カメラの起動に失敗しました');
+                        $('#camera-message p').text('別のカメラを選択するか、ページを再読み込みしてください');
+                        $('#start-button').prop('disabled', false);
+                        $('#stop-button').prop('disabled', true);
+                        return;
+                    }
+                    
+                    // 初期化成功
+                    logInfo('Quagga初期化成功');
+                    quaggaInitialized = true;
+                    $('#camera-message').hide();
+                    showStatus('カメラが起動しました。バーコードをカメラに向けてください。', 'success');
+                    
+                    // スキャン開始
+                    Quagga.start();
+                    
+                    // 処理中のコールバック（デバッグ用）
+                    Quagga.onProcessed(function(result) {
+                        // コンソールに出力する必要がない場合はコメントアウト
+                        // console.log('処理中:', result);
+                    });
+                });
+            } catch (error) {
+                logError('Quagga初期化例外:', error);
+                showStatus(`カメラの初期化中にエラーが発生しました: ${error.message || 'エラーが発生しました'}`, 'error');
+                $('#start-button').prop('disabled', false);
+                $('#stop-button').prop('disabled', true);
+            }
+            
+            // バーコード検出時の処理
+            Quagga.onDetected(function(result) {
+                const code = result.codeResult.code;
+                const now = new Date().getTime();
+                
+                logInfo('バーコード検出:', { code, format: result.codeResult.format });
+                
+                // 同じバーコードの連続検出防止（3秒間）
+                if (lastDetectedBarcode === code && now - lastDetectedAt < 3000) {
+                    return;
+                }
+                
+                // 検出結果の更新
+                lastDetectedBarcode = code;
+                lastDetectedAt = now;
+                
+                // 効果音再生
+                try {
+                    const beep = new Audio('/static/sounds/beep.mp3');
+                    beep.play().catch(e => logError('効果音再生エラー:', e));
+                } catch (e) {
+                    logError('効果音再生エラー:', e);
+                }
+                
+                // バイブレーション（モバイルのみ）
+                if (isMobile && navigator.vibrate) {
+                    navigator.vibrate(200);
+                }
+                
+                // 検出メッセージ表示
+                showStatus(`バーコードを検出しました: ${code}`, 'success');
+                
+                // 書籍情報の検索
+                lookupBookInfo(code);
+            });
+        }
+        
+        // スキャナー停止
+        function stopScanner() {
+            if (quaggaInitialized) {
+                logInfo('スキャナーを停止します');
+                Quagga.stop();
+                quaggaInitialized = false;
+                
+                // UIの更新
+                $('#start-button').prop('disabled', false);
+                $('#stop-button').prop('disabled', true);
+                $('#camera-message').show();
+            }
+        }
+        
+        // 書籍情報の検索
+        function lookupBookInfo(code) {
+            logInfo('書籍情報検索中', code);
+            
+            // 表示初期化
+            $('#result-container').show();
+            $('#spinner').show();
+            $('#result-error').addClass('d-none');
+            $('#result-success').addClass('d-none');
+            
+            // APIリクエスト
+            $.ajax({
+                url: '/barcode/lookup',
+                data: { code: code },
+                success: function(response) {
+                    logInfo('API応答成功', response);
+                    if (response.success) {
+                        // 書籍情報の表示
+                        displayBookInfo(response.book);
+                    } else {
+                        // エラーメッセージの表示
+                        $('#spinner').hide();
+                        $('#result-error').removeClass('d-none');
+                        $('#error-message').text(response.message || '書籍情報が見つかりませんでした');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    logError('API通信エラー', { xhr, status, error });
+                    // エラーメッセージの表示
+                    $('#spinner').hide();
+                    $('#result-error').removeClass('d-none');
+                    $('#error-message').text('サーバーとの通信に失敗しました');
+                }
+            });
+        }
+        
+        // 書籍情報の表示
+        function displayBookInfo(bookData) {
+            logInfo('書籍情報を表示', bookData);
+            currentBookData = bookData;
+            
+            // データの設定
+            $('#book-title').text(bookData.title || '不明なタイトル');
+            $('#book-author').text(bookData.author || '著者不明');
+            $('#book-publisher').text(bookData.publisher || '');
+            $('#book-isbn').text(bookData.isbn || '');
+            
+            // 表紙画像の設定
+            if (bookData.cover_image_path) {
+                $('#book-cover').attr('src', '/static/' + bookData.cover_image_path);
+            } else if (bookData.cover_url) {
+                $('#book-cover').attr('src', bookData.cover_url);
+            } else {
+                $('#book-cover').attr('src', '/static/img/no-cover.jpg');
+            }
+            
+            // 登録リンクの設定
+            let registerUrl = '/books/new?';
+            registerUrl += 'isbn=' + encodeURIComponent(bookData.isbn || '');
+            registerUrl += '&title=' + encodeURIComponent(bookData.title || '');
+            registerUrl += '&author=' + encodeURIComponent(bookData.author || '');
+            registerUrl += '&publisher=' + encodeURIComponent(bookData.publisher || '');
+            registerUrl += '&published_date=' + encodeURIComponent(bookData.published_date || '');
+            registerUrl += '&price=' + encodeURIComponent(bookData.price || '');
+            registerUrl += '&page_count=' + encodeURIComponent(bookData.page_count || '');
+            registerUrl += '&cover_image_path=' + encodeURIComponent(bookData.cover_image_path || '');
+            
+            $('#register-link').attr('href', registerUrl);
+            
+            // 表示の切り替え
+            $('#spinner').hide();
+            $('#result-success').removeClass('d-none');
+        }
+    });
+</script>
+{% endblock %}

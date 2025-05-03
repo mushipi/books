@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表紙画像テスト</title>
+    <style>
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .image-test {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .test-method {
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+        }
+        .test-image {
+            max-height: 200px;
+            max-width: 100%;
+            border: 1px solid #eee;
+            padding: 5px;
+        }
+        .image-path {
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            padding: 5px;
+            background: #f8f9fa;
+            border-radius: 3px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>表紙画像表示テスト</h1>
+        <p>この画面では、さまざまな方法で表紙画像の表示を試みています。</p>
+
+        <div class="image-test">
+            <h2>画像表示テスト: {{ isbn }}</h2>
+            <p>この画像は以下の方法で表示を試みています：</p>
+            
+            <div class="image-container">
+                <div class="test-method">
+                    <h3>方法1: url_for</h3>
+                    <img src="{{ url_for('static', filename='covers/' + isbn + '.jpg') }}" class="test-image" alt="url_for">
+                    <div class="image-path">{{ url_for('static', filename='covers/' + isbn + '.jpg') }}</div>
+                </div>
+                
+                <div class="test-method">
+                    <h3>方法2: 直接パス</h3>
+                    <img src="/static/covers/{{ isbn }}.jpg" class="test-image" alt="直接パス">
+                    <div class="image-path">/static/covers/{{ isbn }}.jpg</div>
+                </div>
+                
+                <div class="test-method">
+                    <h3>方法3: 相対パス</h3>
+                    <img src="static/covers/{{ isbn }}.jpg" class="test-image" alt="相対パス">
+                    <div class="image-path">static/covers/{{ isbn }}.jpg</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="image-test">
+            <h2>データベースに保存されたパスでのテスト</h2>
+            <p>書籍情報: {{ book.title }}</p>
+            <p>パス: {{ book.cover_image_path }}</p>
+            
+            <div class="image-container">
+                <div class="test-method">
+                    <h3>方法1: url_for</h3>
+                    <img src="{{ url_for('static', filename=book.cover_image_path) }}" class="test-image" alt="url_for">
+                    <div class="image-path">{{ url_for('static', filename=book.cover_image_path) }}</div>
+                </div>
+                
+                <div class="test-method">
+                    <h3>方法2: 直接パス</h3>
+                    <img src="/static/{{ book.cover_image_path }}" class="test-image" alt="直接パス">
+                    <div class="image-path">/static/{{ book.cover_image_path }}</div>
+                </div>
+                
+                <div class="test-method">
+                    <h3>方法3: 相対パス</h3>
+                    <img src="static/{{ book.cover_image_path }}" class="test-image" alt="相対パス">
+                    <div class="image-path">static/{{ book.cover_image_path }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <a href="{{ url_for('books.index') }}" class="btn btn-primary">書籍一覧に戻る</a>
+    </div>
+</body>
+</html>

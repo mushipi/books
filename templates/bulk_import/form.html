@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}書籍一括取り込み{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">書籍一括取り込み</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">画像フォルダ指定</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('bulk_import.scan') }}">
+                <div class="mb-3">
+                    <label for="folder_path" class="form-label">画像フォルダのパス</label>
+                    <input type="text" class="form-control" id="folder_path" name="folder_path" 
+                           placeholder="例: C:\Users\username\Pictures\books" required>
+                    <div class="form-text">書籍裏表紙のJPEG画像が入ったフォルダを指定してください</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="default_genre_id" class="form-label">デフォルトジャンル（省略可）</label>
+                    <select class="form-select" id="default_genre_id" name="default_genre_id">
+                        <option value="">ジャンルを選択してください</option>
+                        {% for genre in genres %}
+                        <option value="{{ genre.id }}">{{ genre.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">インポートする書籍に適用するデフォルトのジャンルを設定できます</div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-1"></i> フォルダをスキャン
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">機能説明</h5>
+        </div>
+        <div class="card-body">
+            <p>この機能では、書籍裏表紙のJPEG画像からISBNバーコード、Cコード、価格情報を抽出して、書籍を一括登録できます。</p>
+            
+            <h6 class="mt-3">使用方法</h6>
+            <ol>
+                <li>書籍の裏表紙を撮影したJPEG画像をフォルダに保存します</li>
+                <li>フォルダパスを指定して「フォルダをスキャン」ボタンをクリックします</li>
+                <li>スキャン結果から登録したい書籍を選択します</li>
+                <li>「選択した書籍をインポート」ボタンをクリックして一括登録を実行します</li>
+            </ol>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                バーコード認識はできるだけローカル処理で行いますが、読み取りが難しい場合はGoogle Gemini APIを利用します。
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

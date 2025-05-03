@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book.title }} | 本管理アプリ{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('books.index') }}">蔵書一覧</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ book.title }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 表紙画像 -->
+    <div class="col-md-4 mb-4 text-center">
+        <div class="card">
+            <div class="card-body bg-light d-flex align-items-center justify-content-center" style="min-height: 300px;">
+            {% if book.cover_image_path %}
+            <!-- 直接的な画像パスを使用 -->
+            <img src="/static/{{ book.cover_image_path }}" class="img-fluid rounded" alt="{{ book.title }}">
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-book fa-5x text-secondary"></i>
+                <p class="mt-3 text-muted">表紙画像がありません</p>
+            </div>
+            {% endif %}
+            </div>
+        </div>
+        
+        <!-- 操作ボタン -->
+        <div class="d-grid gap-2 mt-3">
+            <a href="{{ url_for('books.edit', book_id=book.id) }}" class="btn btn-outline-primary">
+                <i class="fas fa-edit me-1"></i> 編集
+            </a>
+            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="fas fa-trash-alt me-1"></i> 削除
+            </button>
+        </div>
+    </div>
+    
+    <!-- 書籍情報 -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2 class="mb-0">{{ book.title }}</h2>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tbody>
+                        <tr>
+                            <th style="width: 120px;">著者</th>
+                            <td>{{ book.author }}</td>
+                        </tr>
+                        {% if book.publisher %}
+                        <tr>
+                            <th>出版社</th>
+                            <td>{{ book.publisher }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if book.published_date %}
+                        <tr>
+                            <th>出版日</th>
+                            <td>{{ book.published_date }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if book.isbn %}
+                        <tr>
+                            <th>ISBN</th>
+                            <td>{{ book.isbn }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if book.jan_code %}
+                        <tr>
+                            <th>JANコード</th>
+                            <td>{{ book.jan_code }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if book.price %}
+                        <tr>
+                            <th>価格</th>
+                            <td>{{ book.price }}円</td>
+                        </tr>
+                        {% endif %}
+                        {% if book.page_count %}
+                        <tr>
+                            <th>ページ数</th>
+                            <td>{{ book.page_count }}ページ</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th>追加日</th>
+                            <td>{{ book.added_date }}</td>
+                        </tr>
+                        {% if book.location %}
+                        <tr>
+                            <th>収納場所</th>
+                            <td>
+                                <i class="fas fa-map-marker-alt me-1 text-danger"></i>
+                                {{ book.location.name }}
+                                {% if book.location.description %}
+                                <small class="text-muted d-block">{{ book.location.description }}</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- ジャンルとタグ -->
+        <div class="row mb-4">
+            <!-- ジャンル -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-bookmark me-2"></i>ジャンル</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for genre in book.genres %}
+                        <span class="badge bg-primary p-2 mb-2 me-2">{{ genre.name }}</span>
+                        {% else %}
+                        <p class="text-muted">ジャンルが設定されていません</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- タグ -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-tags me-2"></i>タグ</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for tag in book.tags %}
+                        <span class="badge bg-secondary p-2 mb-2 me-2">{{ tag.name }}</span>
+                        {% else %}
+                        <p class="text-muted">タグが設定されていません</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- メモ -->
+        {% if book.memo %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i>メモ</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ book.memo|nl2br }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 削除確認モーダル -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">削除の確認</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>以下の書籍を削除してもよろしいですか？</p>
+                <p><strong>{{ book.title }}</strong> ({{ book.author }})</p>
+                <p class="text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    この操作は取り消せません
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <form action="{{ url_for('books.delete', book_id=book.id) }}" method="post">
+                    <button type="submit" class="btn btn-danger">削除する</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

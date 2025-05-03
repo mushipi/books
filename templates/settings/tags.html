@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}タグ管理 | のうら家 書籍データベース{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('settings.index') }}">設定</a></li>
+                <li class="breadcrumb-item active" aria-current="page">タグ管理</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="mb-3"><i class="fas fa-tags me-2"></i>タグ管理</h1>
+        <p class="text-muted">
+            書籍につけるタグを管理します。
+            タグは自由に追加でき、様々な視点から書籍を分類するのに役立ちます。
+        </p>
+    </div>
+    <div class="col-md-4 text-end">
+        <button class="btn btn-success mt-2" data-bs-toggle="modal" data-bs-target="#addTagModal">
+            <i class="fas fa-plus me-1"></i> 新しいタグを追加
+        </button>
+    </div>
+</div>
+
+<!-- タグ一覧 -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">タグ一覧</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width: 60px;">#</th>
+                        <th scope="col">タグ名</th>
+                        <th scope="col" style="width: 180px;">書籍数</th>
+                        <th scope="col" style="width: 150px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tag in tags %}
+                    <tr>
+                        <td class="text-muted">{{ tag.id }}</td>
+                        <td>
+                            <span class="badge bg-secondary p-2">{{ tag.name }}</span>
+                        </td>
+                        <td>
+                            {% if tag_counts[tag.id] > 0 %}
+                            <a href="{{ url_for('books.index', tag=tag.id) }}" class="text-decoration-none">
+                                <span class="badge bg-primary">{{ tag_counts[tag.id] }}冊</span>
+                            </a>
+                            {% else %}
+                            <span class="badge bg-secondary">0冊</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary edit-tag-btn" 
+                                        data-id="{{ tag.id }}" 
+                                        data-name="{{ tag.name }}"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#editTagModal">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger delete-tag-btn" 
+                                        data-id="{{ tag.id }}" 
+                                        data-name="{{ tag.name }}"
+                                        data-books="{{ tag_counts[tag.id] }}"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteTagModal">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4">
+                            <div class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                タグがまだ登録されていません
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- タグ追加モーダル -->
+<div class="modal fade" id="addTagModal" tabindex="-1" aria-labelledby="addTagModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <input type="hidden" name="action" value="add">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addTagModalLabel">新しいタグを追加</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">タグ名</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="form-text">タグ名は一意である必要があります</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i> 追加
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- タグ編集モーダル -->
+<div class="modal fade" id="editTagModal" tabindex="-1" aria-labelledby="editTagModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" id="edit-tag-id" name="tag_id">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTagModalLabel">タグを編集</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit-name" class="form-label">タグ名</label>
+                        <input type="text" class="form-control" id="edit-name" name="name" required>
+                        <div class="form-text">タグ名は一意である必要があります</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> 保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- タグ削除モーダル -->
+<div class="modal fade" id="deleteTagModal" tabindex="-1" aria-labelledby="deleteTagModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" id="delete-tag-id" name="tag_id">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteTagModalLabel">タグを削除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>以下のタグを削除してもよろしいですか？</p>
+                    <p><span class="badge bg-secondary p-2" id="delete-tag-name"></span></p>
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        タグを削除しても、そのタグが付いていた書籍は削除されません。
+                        ただ、そのタグとの関連が解除されるだけです。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt me-1"></i> 削除
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // 編集モーダルの設定
+        $('.edit-tag-btn').click(function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            
+            $('#edit-tag-id').val(id);
+            $('#edit-name').val(name);
+        });
+        
+        // 削除モーダルの設定
+        $('.delete-tag-btn').click(function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            
+            $('#delete-tag-id').val(id);
+            $('#delete-tag-name').text(name);
+        });
+    });
+</script>
+{% endblock %}

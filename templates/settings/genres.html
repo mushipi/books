@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}ジャンル管理 | のうら家 書籍データベース{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('settings.index') }}">設定</a></li>
+                <li class="breadcrumb-item active" aria-current="page">ジャンル管理</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="mb-3"><i class="fas fa-bookmark me-2"></i>ジャンル管理</h1>
+        <p class="text-muted">
+            書籍のジャンル（カテゴリー）を管理します。
+            ジャンルは一度作成すると、新規書籍登録や編集時に選択できるようになります。
+        </p>
+    </div>
+    <div class="col-md-4 text-end">
+        <button class="btn btn-success mt-2" data-bs-toggle="modal" data-bs-target="#addGenreModal">
+            <i class="fas fa-plus me-1"></i> 新しいジャンルを追加
+        </button>
+    </div>
+</div>
+
+<!-- ジャンル一覧 -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">ジャンル一覧</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width: 60px;">#</th>
+                        <th scope="col">ジャンル名</th>
+                        <th scope="col" style="width: 180px;">書籍数</th>
+                        <th scope="col" style="width: 150px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for genre in genres %}
+                    <tr>
+                        <td class="text-muted">{{ genre.id }}</td>
+                        <td>{{ genre.name }}</td>
+                        <td>
+                            {% if genre_counts[genre.id] > 0 %}
+                            <a href="{{ url_for('books.index', genre=genre.id) }}" class="text-decoration-none">
+                                <span class="badge bg-primary">{{ genre_counts[genre.id] }}冊</span>
+                            </a>
+                            {% else %}
+                            <span class="badge bg-secondary">0冊</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary edit-genre-btn" 
+                                        data-id="{{ genre.id }}" 
+                                        data-name="{{ genre.name }}"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#editGenreModal">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger delete-genre-btn" 
+                                        data-id="{{ genre.id }}" 
+                                        data-name="{{ genre.name }}"
+                                        data-books="{{ genre_counts[genre.id] }}"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteGenreModal">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4">
+                            <div class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                ジャンルがまだ登録されていません
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ジャンル追加モーダル -->
+<div class="modal fade" id="addGenreModal" tabindex="-1" aria-labelledby="addGenreModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <input type="hidden" name="action" value="add">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addGenreModalLabel">新しいジャンルを追加</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">ジャンル名</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="form-text">ジャンル名は一意である必要があります</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i> 追加
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ジャンル編集モーダル -->
+<div class="modal fade" id="editGenreModal" tabindex="-1" aria-labelledby="editGenreModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" id="edit-genre-id" name="genre_id">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editGenreModalLabel">ジャンルを編集</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit-name" class="form-label">ジャンル名</label>
+                        <input type="text" class="form-control" id="edit-name" name="name" required>
+                        <div class="form-text">ジャンル名は一意である必要があります</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> 保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ジャンル削除モーダル -->
+<div class="modal fade" id="deleteGenreModal" tabindex="-1" aria-labelledby="deleteGenreModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" id="delete-genre-id" name="genre_id">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteGenreModalLabel">ジャンルを削除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>以下のジャンルを削除してもよろしいですか？</p>
+                    <p><strong id="delete-genre-name"></strong></p>
+                    <div id="delete-warning" class="alert alert-danger d-none">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        このジャンルは <strong id="delete-book-count"></strong> 冊の書籍で使用されています。
+                        削除する前に、これらの書籍から別のジャンルを割り当てる必要があります。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="submit" class="btn btn-danger" id="delete-submit-btn">
+                        <i class="fas fa-trash-alt me-1"></i> 削除
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // 編集モーダルの設定
+        $('.edit-genre-btn').click(function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            
+            $('#edit-genre-id').val(id);
+            $('#edit-name').val(name);
+        });
+        
+        // 削除モーダルの設定
+        $('.delete-genre-btn').click(function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            var bookCount = $(this).data('books');
+            
+            $('#delete-genre-id').val(id);
+            $('#delete-genre-name').text(name);
+            
+            // 書籍数による警告と削除ボタンの制御
+            if (bookCount > 0) {
+                $('#delete-book-count').text(bookCount);
+                $('#delete-warning').removeClass('d-none');
+                $('#delete-submit-btn').prop('disabled', true);
+            } else {
+                $('#delete-warning').addClass('d-none');
+                $('#delete-submit-btn').prop('disabled', false);
+            }
+        });
+    });
+</script>
+{% endblock %}

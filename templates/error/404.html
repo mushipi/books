@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}ページが見つかりません | 本管理アプリ{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center">
+        <div class="mb-4">
+            <span class="display-1 fw-bold text-primary">404</span>
+        </div>
+        <h1 class="mb-3">ページが見つかりません</h1>
+        <p class="lead mb-4 text-muted">
+            お探しのページは存在しないか、移動した可能性があります。
+        </p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="fas fa-home me-1"></i> ホームに戻る
+        </a>
+    </div>
+</div>
+{% endblock %}

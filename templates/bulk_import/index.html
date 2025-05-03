@@ -1,0 +1,552 @@
+{% extends 'base.html' %}
+
+{% block title %}一括取り込み - 書籍管理{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-4">
+    <i class="fas fa-file-import me-2"></i>書籍画像一括取り込み
+  </h1>
+  
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-camera me-2"></i>画像フォルダ指定
+          </h5>
+        </div>
+        <div class="card-body">
+          <form id="import-form">
+            <div class="mb-3">
+              <label for="directory_path" class="form-label">書籍画像が格納されているフォルダ</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="directory_path" name="directory_path" 
+                       placeholder="例: C:\Users\username\Pictures\Books">
+                <button class="btn btn-outline-secondary" type="button" id="browse-button">
+                  <i class="fas fa-folder-open me-1"></i> 参照
+                </button>
+              </div>
+              <div class="form-text">フォルダ内の全てのJPEG画像が処理されます</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="default_genre_id" class="form-label">デフォルトジャンル</label>
+              <select class="form-select" id="default_genre_id" name="default_genre_id">
+                <option value="">ジャンルを選択 (任意)</option>
+                {% for genre in genres %}
+                <option value="{{ genre.id }}">{{ genre.name }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text">全ての書籍に設定するデフォルトジャンル</div>
+            </div>
+            
+            <div class="mb-3 form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="use_ai" name="use_ai" checked>
+              <label class="form-check-label" for="use_ai">
+                <i class="fas fa-brain me-1"></i> AI抽出を使用 (Gemini API)
+              </label>
+              <div class="form-text">AIによる高精度な情報抽出を行います</div>
+            </div>
+            
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary" id="start-import">
+                <i class="fas fa-play me-1"></i> 一括取り込み開始
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- 処理状況表示パネル -->
+      <div class="card mb-4 d-none" id="progress-panel">
+        <div class="card-header bg-info text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-sync fa-spin me-2"></i>処理状況
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="progress mb-3">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                 id="progress-bar" role="progressbar" style="width: 0%" 
+                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+          </div>
+          
+          <div class="d-flex justify-content-between mb-3">
+            <div id="current-status">初期化中...</div>
+            <div id="progress-counter">0 / 0</div>
+          </div>
+          
+          <div class="mb-3">
+            <h6>現在処理中:</h6>
+            <div id="current-file" class="text-primary">-</div>
+          </div>
+          
+          <div class="alert alert-info" id="info-message">
+            処理を開始するとここに状況が表示されます
+          </div>
+          
+          <div class="text-center mt-3">
+            <button class="btn btn-danger" id="cancel-button">
+              <i class="fas fa-stop-circle me-1"></i> 処理をキャンセル
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 処理結果表示パネル -->
+      <div class="card d-none" id="result-panel">
+        <div class="card-header bg-success text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-check-circle me-2"></i>処理結果
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-success mb-3" id="success-summary">
+            処理が完了しました
+          </div>
+          
+          <h6>処理済み書籍リスト:</h6>
+          <div class="table-responsive">
+            <table class="table table-striped table-sm">
+              <thead>
+                <tr>
+                  <th>ファイル名</th>
+                  <th>ISBN</th>
+                  <th>タイトル</th>
+                  <th>状態</th>
+                </tr>
+              </thead>
+              <tbody id="result-table-body">
+                <!-- 結果が動的に追加されます -->
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="mt-3">
+            <button class="btn btn-primary" id="new-import-button">
+              <i class="fas fa-plus me-1"></i> 新規取り込み
+            </button>
+            <a href="{{ url_for('books.index') }}" class="btn btn-outline-secondary ms-2">
+              <i class="fas fa-book me-1"></i> 書籍一覧に戻る
+            </a>
+            
+            <!-- エクスポートボタン -->
+            <div class="btn-group ms-2" id="export-buttons" style="display: none;">
+              <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-file-export me-1"></i> 結果をエクスポート
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" id="export-csv" href="#">CSVファイル</a></li>
+                <li><a class="dropdown-item" id="print-result" href="#">印刷用レポート</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-info-circle me-2"></i>使い方ガイド
+          </h5>
+        </div>
+        <div class="card-body">
+          <ol class="ps-3">
+            <li>書籍の裏表紙を撮影した画像をフォルダに保存します</li>
+            <li>画像が保存されているフォルダを指定します</li>
+            <li>取り込む書籍のデフォルトジャンルを選択します（任意）</li>
+            <li>「一括取り込み開始」ボタンをクリックします</li>
+            <li>処理が完了するまで待ちます（画像枚数によって時間がかかります）</li>
+          </ol>
+          
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-1"></i> 撮影時のポイント:
+            <ul class="ps-3 mb-0">
+              <li>ISBNバーコードが鮮明に映るようにしてください</li>
+              <li>できるだけ明るい場所で撮影してください</li>
+              <li>手ぶれしないよう注意してください</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header bg-dark text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-cog me-2"></i>詳細設定
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3 form-check">
+            <input class="form-check-input" type="checkbox" id="skip_existing" checked>
+            <label class="form-check-label" for="skip_existing">
+              既存の書籍をスキップ
+            </label>
+          </div>
+          
+          <div class="mb-3 form-check">
+            <input class="form-check-input" type="checkbox" id="download_covers" checked>
+            <label class="form-check-label" for="download_covers">
+              表紙画像をダウンロード
+            </label>
+          </div>
+          
+          <div class="mb-3">
+            <label for="processing_delay" class="form-label">
+              処理間隔（秒）
+            </label>
+            <input type="range" class="form-range" id="processing_delay" 
+                   min="0" max="5" step="0.5" value="1">
+            <div class="d-flex justify-content-between">
+              <small>0秒</small>
+              <small id="delay-value">1秒</small>
+              <small>5秒</small>
+            </div>
+            <div class="form-text">APIリクエスト制限を考慮した間隔設定</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  $(document).ready(function() {
+    let sessionId = null;
+    let pollingInterval = null;
+    
+    // レンジスライダーの値表示
+    $('#processing_delay').on('input', function() {
+      $('#delay-value').text($(this).val() + '秒');
+    });
+    
+    // フォーム送信
+    $('#import-form').on('submit', function(e) {
+      e.preventDefault();
+      
+      // 入力値の取得
+      const directoryPath = $('#directory_path').val().trim();
+      if (!directoryPath) {
+        alert('フォルダパスを入力してください');
+        return false;
+      }
+      
+      // フォームデータの取得
+      const formData = new FormData(this);
+      
+      // 処理パネルの表示
+      $('#progress-panel').removeClass('d-none');
+      $('#result-panel').addClass('d-none');
+      
+      // インポート開始ボタンを無効化
+      $('#start-import').prop('disabled', true)
+        .html('<i class="fas fa-spinner fa-spin me-1"></i> 処理中...');
+      
+      // バックグラウンド処理の開始
+      $.ajax({
+        url: '{{ url_for("bulk_import.start_process") }}',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+          if (response.success) {
+            sessionId = response.session_id;
+            
+            // 状態更新の開始
+            updateProgress();
+            pollingInterval = setInterval(updateProgress, 1000);
+            
+            $('#info-message').html(
+              '<i class="fas fa-info-circle me-1"></i> ' +
+              'バックグラウンドで処理を開始しました。このページを開いたままにしてください。'
+            );
+          } else {
+            // エラー表示
+            $('#progress-panel').addClass('d-none');
+            $('#start-import').prop('disabled', false)
+              .html('<i class="fas fa-play me-1"></i> 一括取り込み開始');
+            
+            alert('エラー: ' + response.message);
+          }
+        },
+        error: function() {
+          $('#progress-panel').addClass('d-none');
+          $('#start-import').prop('disabled', false)
+            .html('<i class="fas fa-play me-1"></i> 一括取り込み開始');
+          
+          alert('サーバーとの通信に失敗しました');
+        }
+      });
+    });
+    
+    // キャンセルボタン
+    $('#cancel-button').on('click', function() {
+      if (!sessionId) return;
+      
+      if (confirm('処理をキャンセルしますか？')) {
+        $.ajax({
+          url: '{{ url_for("bulk_import.cancel_process") }}',
+          type: 'POST',
+          data: { session_id: sessionId },
+          success: function(response) {
+            if (response.success) {
+              $('#info-message').html(
+                '<i class="fas fa-info-circle me-1"></i> ' +
+                '処理をキャンセルしました。現在の処理が完了次第、停止します。'
+              );
+            } else {
+              alert('キャンセルに失敗しました: ' + response.message);
+            }
+          }
+        });
+      }
+    });
+    
+    // 進捗状況の更新
+    function updateProgress() {
+      if (!sessionId) return;
+      
+      $.ajax({
+        url: '{{ url_for("bulk_import.ajax_progress") }}',
+        type: 'GET',
+        data: { session_id: sessionId },
+        success: function(status) {
+          // ステータス表示の更新
+          $('#current-status').text(getStatusText(status.status));
+          
+          if (status.total > 0) {
+            const percent = Math.floor((status.current / status.total) * 100);
+            $('#progress-bar').css('width', percent + '%')
+              .attr('aria-valuenow', percent)
+              .text(percent + '%');
+            
+            $('#progress-counter').text(status.current + ' / ' + status.total);
+          }
+          
+          if (status.current_file) {
+            $('#current-file').text(status.current_file);
+          }
+          
+          // 処理完了時
+          if (status.status === 'completed' || status.status === 'cancelled' || status.status === 'error') {
+            clearInterval(pollingInterval);
+            
+            // 結果パネルの表示
+            $('#progress-panel').addClass('d-none');
+            $('#result-panel').removeClass('d-none');
+            
+            // 成功・エラー数のカウント
+            const successCount = (status.processed_files || []).length;
+            const errorCount = (status.errors || []).length;
+            
+            // 結果サマリーの表示
+            if (status.status === 'completed') {
+              $('#success-summary').html(
+                `<i class="fas fa-check-circle me-1"></i> ` +
+                `処理が完了しました。${status.total}個の画像を処理し、` +
+                `${successCount}冊の書籍を登録しました。` +
+                (errorCount > 0 ? `${errorCount}件のエラーが発生しました。` : '')
+              ).removeClass('alert-danger alert-warning').addClass('alert-success');
+            } else if (status.status === 'cancelled') {
+              $('#success-summary').html(
+                `<i class="fas fa-ban me-1"></i> ` +
+                `処理がキャンセルされました。${status.current}/${status.total}個の画像を処理しました。`
+              ).removeClass('alert-success alert-danger').addClass('alert-warning');
+            } else if (status.status === 'error') {
+              $('#success-summary').html(
+                `<i class="fas fa-exclamation-triangle me-1"></i> ` +
+                `エラーが発生しました: ${status.message || '不明なエラー'}`
+              ).removeClass('alert-success alert-warning').addClass('alert-danger');
+            }
+            
+            // 結果テーブルの作成
+            $('#result-table-body').empty();
+            
+            // 成功した処理
+            if (status.processed_files) {
+              status.processed_files.forEach(book => {
+                $('#result-table-body').append(`
+                  <tr>
+                    <td>${book.file || '-'}</td>
+                    <td>${book.isbn || '-'}</td>
+                    <td>${book.title || '-'}</td>
+                    <td><span class="badge bg-success">登録済み</span></td>
+                  </tr>
+                `);
+              });
+            }
+            
+            // エラーが発生した処理
+            if (status.errors) {
+              status.errors.forEach(error => {
+                $('#result-table-body').append(`
+                  <tr>
+                    <td>${error.file || '-'}</td>
+                    <td>-</td>
+                    <td><span class="text-danger">${error.error || '不明なエラー'}</span></td>
+                    <td><span class="badge bg-danger">エラー</span></td>
+                  </tr>
+                `);
+              });
+            }
+            
+            // エクスポートボタンの表示
+            $('#export-buttons').show();
+            
+            // エクスポートリンクの設定
+            $('#export-csv').attr('href', '{{ url_for("bulk_import.export_result") }}?session_id=' + sessionId);
+            
+            // フォームリセット
+            $('#start-import').prop('disabled', false)
+              .html('<i class="fas fa-play me-1"></i> 一括取り込み開始');
+          }
+        },
+        error: function() {
+          console.error('進捗状況の取得に失敗しました');
+        }
+      });
+    }
+    
+    // ステータスの文字列変換
+    function getStatusText(status) {
+      switch (status) {
+        case 'initializing': return '初期化中...';
+        case 'processing': return '処理中...';
+        case 'completed': return '完了';
+        case 'cancelled': return 'キャンセル済み';
+        case 'cancelling': return 'キャンセル処理中...';
+        case 'error': return 'エラー';
+        case 'not_found': return 'セッションが見つかりません';
+        default: return status || '不明なステータス';
+      }
+    }
+    
+    // 新規取り込みボタン
+    $('#new-import-button').on('click', function() {
+      // パネルの表示切替
+      $('#result-panel').addClass('d-none');
+      $('#progress-panel').addClass('d-none');
+      $('#export-buttons').hide();
+      
+      // セッションIDのリセット
+      sessionId = null;
+      
+      // ポーリングの停止
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    });
+    
+    // 印刷用レポートボタン
+    $('#print-result').on('click', function() {
+      if (!sessionId) return;
+      
+      // 印刷用のウィンドウを開く
+      const printWindow = window.open('', '_blank');
+      
+      // 処理状況の再取得
+      $.ajax({
+        url: '{{ url_for("bulk_import.ajax_progress") }}',
+        type: 'GET',
+        data: { session_id: sessionId },
+        success: function(status) {
+          // HTMLコンテンツの作成
+          let htmlContent = `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                  <title>書籍取り込み結果</title>
+                  <meta charset="utf-8">
+                  <style>
+                      body { font-family: Arial, sans-serif; margin: 20px; }
+                      h1 { color: #336699; }
+                      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                      th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+                      th { background-color: #f2f2f2; }
+                      .success { color: green; }
+                      .error { color: red; }
+                      .summary { margin: 20px 0; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #336699; }
+                  </style>
+              </head>
+              <body>
+                  <h1>書籍一括取り込み結果</h1>
+                  <div class="summary">
+                      <p>処理日時: ${new Date().toLocaleString()}</p>
+                      <p>対象フォルダ: ${$('#directory_path').val()}</p>
+                      <p>処理画像数: ${status.total}枚</p>
+                      <p>成功: ${(status.processed_files || []).length}件 / エラー: ${(status.errors || []).length}件</p>
+                  </div>
+                  
+                  <h2>処理結果一覧</h2>
+                  <table>
+                      <thead>
+                          <tr>
+                              <th>ファイル名</th>
+                              <th>ISBN</th>
+                              <th>タイトル</th>
+                              <th>状態</th>
+                          </tr>
+                      </thead>
+                      <tbody>`;
+          
+          // 成功した処理
+          if (status.processed_files) {
+            status.processed_files.forEach(book => {
+              htmlContent += `
+                  <tr>
+                      <td>${book.file || '-'}</td>
+                      <td>${book.isbn || '-'}</td>
+                      <td>${book.title || '-'}</td>
+                      <td class="success">登録済み</td>
+                  </tr>`;
+            });
+          }
+          
+          // エラーが発生した処理
+          if (status.errors) {
+            status.errors.forEach(error => {
+              htmlContent += `
+                  <tr>
+                      <td>${error.file || '-'}</td>
+                      <td>-</td>
+                      <td class="error">${error.error || '不明なエラー'}</td>
+                      <td class="error">エラー</td>
+                  </tr>`;
+            });
+          }
+          
+          htmlContent += `
+                      </tbody>
+                  </table>
+                  
+                  <script>
+                      window.onload = function() { window.print(); }
+                  </script>
+              </body>
+              </html>`;
+          
+          // HTMLの書き込みと印刷
+          printWindow.document.write(htmlContent);
+          printWindow.document.close();
+        },
+        error: function() {
+          printWindow.close();
+          alert('データの取得に失敗しました');
+        }
+      });
+    });
+    
+    // フォルダ参照ボタンの機能はブラウザの制限によりクライアント側では実装不可
+    // 注: これはUIのフォルダ参照ボタンがあることを示すためのデモ要素です
+    $('#browse-button').on('click', function() {
+      alert('セキュリティ上の理由により、ブラウザからシステムのフォルダを直接選択することはできません。フォルダパスを直接入力してください。');
+    });
+  });
+</script>
+{% endblock %}

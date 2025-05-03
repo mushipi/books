@@ -1,0 +1,53 @@
+[
+  {
+    "id": 1,
+    "title": "八九六四 : 「天安門事件」から香港デモへ",
+    "author": "安田峰俊",
+    "publisher": "KADOKAWA",
+    "isbn": "9784040823966",
+    "jan_code": "None",
+    "published_date": "202105",
+    "price": null,
+    "page_count": null,
+    "cover_image_path": "covers/9784040823966.jpg",
+    "added_date": "2025-05-04",
+    "memo": "None",
+    "location": null,
+    "genres": [],
+    "tags": []
+  },
+  {
+    "id": 2,
+    "title": "ただ君に幸あらんことを",
+    "author": "ニシダ",
+    "publisher": "KADOKAWA",
+    "isbn": "9784041146583",
+    "jan_code": "None",
+    "published_date": "202501",
+    "price": null,
+    "page_count": null,
+    "cover_image_path": "covers/9784041146583.jpg",
+    "added_date": "2025-05-04",
+    "memo": "None",
+    "location": null,
+    "genres": [],
+    "tags": []
+  },
+  {
+    "id": 3,
+    "title": "新疆ウイグル自治区 : 中国共産党支配の70年",
+    "author": "熊倉潤",
+    "publisher": "中央公論新社",
+    "isbn": "9784121027009",
+    "jan_code": "None",
+    "published_date": "202206",
+    "price": null,
+    "page_count": null,
+    "cover_image_path": "covers/9784121027009.jpg",
+    "added_date": "2025-05-04",
+    "memo": "None",
+    "location": null,
+    "genres": [],
+    "tags": []
+  }
+]

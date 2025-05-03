@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+
+{% block title %}蔵書一覧 | 本管理アプリ{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="mb-3">蔵書一覧</h1>
+        <p>全{{ pagination.total }}冊の本が登録されています</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('books.new') }}" class="btn btn-success">
+            <i class="fas fa-plus me-1"></i> 新しい本を登録
+        </a>
+    </div>
+</div>
+
+<!-- 一括操作バー -->
+<div id="bulkActionBar" class="card mb-3 d-none">
+  <div class="card-body bg-light d-flex justify-content-between align-items-center">
+    <div>
+      <span id="selectedCount" class="badge bg-primary me-2">0</span>冊選択中
+    </div>
+    <div>
+      <button type="button" class="btn btn-danger" id="bulkDeleteBtn">
+        <i class="fas fa-trash-alt me-1"></i> 選択した本を削除
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- フィルターとソートオプション -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">
+            <i class="fas fa-filter me-2"></i>絞り込み・並べ替え
+        </h5>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('books.index') }}" method="get" id="filterForm">
+            <div class="row g-3">
+                <!-- 検索キーワード -->
+                <div class="col-md-4">
+                    <label for="search" class="form-label">キーワード</label>
+                    <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}">
+                </div>
+                
+                <!-- ジャンル -->
+                <div class="col-md-3">
+                    <label for="genre" class="form-label">ジャンル</label>
+                    <select class="form-select" id="genre" name="genre">
+                        <option value="">すべて</option>
+                        {% for genre in genres %}
+                        <option value="{{ genre.id }}" {% if genre_id == genre.id %}selected{% endif %}>
+                            {{ genre.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- 収納場所 -->
+                <div class="col-md-3">
+                    <label for="location" class="form-label">収納場所</label>
+                    <select class="form-select" id="location" name="location">
+                        <option value="">すべて</option>
+                        {% for location in locations %}
+                        <option value="{{ location.id }}" {% if location_id == location.id %}selected{% endif %}>
+                            {{ location.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- 並べ替え -->
+                <div class="col-md-2">
+                    <label for="sort" class="form-label">並べ替え</label>
+                    <select class="form-select" id="sort" name="sort">
+                        <option value="added_date" {% if sort_by == 'added_date' %}selected{% endif %}>追加日</option>
+                        <option value="title" {% if sort_by == 'title' %}selected{% endif %}>タイトル</option>
+                        <option value="author" {% if sort_by == 'author' %}selected{% endif %}>著者</option>
+                        <option value="published_date" {% if sort_by == 'published_date' %}selected{% endif %}>出版日</option>
+                    </select>
+                </div>
+                
+                <!-- 並べ替え順序 -->
+                <div class="col-12">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="order" id="orderDesc" value="desc" {% if sort_order == 'desc' %}checked{% endif %}>
+                        <label class="form-check-label" for="orderDesc">降順</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="order" id="orderAsc" value="asc" {% if sort_order == 'asc' %}checked{% endif %}>
+                        <label class="form-check-label" for="orderAsc">昇順</label>
+                    </div>
+                    
+                    <!-- 表示切替ボタン -->
+                    <div class="float-end">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary active" id="gridView">
+                                <i class="fas fa-th-large"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="listView">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 検索ボタン -->
+                    <button type="submit" class="btn btn-primary float-end me-2">
+                        <i class="fas fa-search me-1"></i> 検索
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 書籍リスト（グリッド表示） -->
+<div id="booksGrid" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for book in books %}
+    <div class="col">
+        <div class="card h-100 position-relative">
+            <!-- チェックボックスを追加 -->
+            <div class="position-absolute top-0 start-0 m-2 z-index-1">
+              <div class="form-check">
+                <input class="form-check-input book-select" type="checkbox" value="{{ book.id }}" id="book-{{ book.id }}">
+              </div>
+            </div>
+            <div class="row g-0">
+                <div class="col-4 col-md-12 d-flex align-items-center bg-light p-2">
+                    {% if book.cover_image_path %}
+                    <!-- 直接リンクで画像を試す -->
+                    <img src="/static/{{ book.cover_image_path }}" class="img-fluid rounded mx-auto d-block" alt="{{ book.title }}">
+                    {% else %}
+                    <div class="text-center w-100 py-5">
+                        <i class="fas fa-book fa-4x text-secondary"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-8 col-md-12">
+                    <div class="card-body">
+                        <h5 class="card-title text-truncate" title="{{ book.title }}">{{ book.title }}</h5>
+                        <p class="card-text text-truncate" title="{{ book.author }}">
+                            <small><i class="fas fa-user me-1"></i>{{ book.author }}</small>
+                        </p>
+                        {% if book.publisher %}
+                        <p class="card-text">
+                            <small class="text-muted"><i class="fas fa-building me-1"></i>{{ book.publisher }}</small>
+                        </p>
+                        {% endif %}
+                        
+                        <!-- タグとジャンル -->
+                        <div class="mb-2">
+                            {% for genre in book.genres %}
+                            <span class="badge bg-primary me-1">{{ genre.name }}</span>
+                            {% endfor %}
+                            
+                            {% for tag in book.tags %}
+                            <span class="badge bg-secondary me-1">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- 収納場所 -->
+                        {% if book.location %}
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <i class="fas fa-map-marker-alt me-1"></i>{{ book.location.name }}
+                            </small>
+                        </p>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between mt-3">
+                            <a href="{{ url_for('books.detail', book_id=book.id) }}" class="btn btn-sm btn-outline-primary">詳細</a>
+                            <a href="{{ url_for('books.edit', book_id=book.id) }}" class="btn btn-sm btn-outline-secondary">編集</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>書籍が見つかりません。検索条件を変更するか、新しい本を登録してください。
+        </div>
+        <a href="{{ url_for('books.new') }}" class="btn btn-primary mt-3">
+            <i class="fas fa-plus me-1"></i>本を登録する
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 書籍リスト（リスト表示） -->
+<div id="booksList" class="d-none">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>表紙</th>
+                    <th>タイトル</th>
+                    <th>著者</th>
+                    <th>出版社</th>
+                    <th>ジャンル</th>
+                    <th>収納場所</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for book in books %}
+                <tr>
+                    <td style="width: 60px;">
+                        {% if book.cover_image_path %}
+                        <img src="{{ url_for('static', filename=book.cover_image_path) }}" class="img-thumbnail" alt="{{ book.title }}" style="max-height: 60px;">
+                        {% else %}
+                        <div class="text-center">
+                            <i class="fas fa-book fa-2x text-secondary"></i>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>{{ book.title }}</td>
+                    <td>{{ book.author }}</td>
+                    <td>{{ book.publisher }}</td>
+                    <td>
+                        {% for genre in book.genres %}
+                        <span class="badge bg-primary me-1">{{ genre.name }}</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% if book.location %}
+                        {{ book.location.name }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="{{ url_for('books.detail', book_id=book.id) }}" class="btn btn-sm btn-outline-primary">詳細</a>
+                            <a href="{{ url_for('books.edit', book_id=book.id) }}" class="btn btn-sm btn-outline-secondary">編集</a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-4">
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle me-2"></i>書籍が見つかりません。検索条件を変更するか、新しい本を登録してください。
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ページネーション -->
+{% if pagination.pages > 1 %}
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center mt-4">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('books.index', page=pagination.prev_num, search=search_query, genre=genre_id, location=location_id, sort=sort_by, order=sort_order) }}">前へ</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">前へ</span>
+        </li>
+        {% endif %}
+        
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+        {% if page_num %}
+        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('books.index', page=page_num, search=search_query, genre=genre_id, location=location_id, sort=sort_by, order=sort_order) }}">{{ page_num }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">...</span>
+        </li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('books.index', page=pagination.next_num, search=search_query, genre=genre_id, location=location_id, sort=sort_by, order=sort_order) }}">次へ</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">次へ</span>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- 単一書籍削除モーダル -->
+<div class="modal fade" id="singleDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">書籍の削除</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>以下の書籍を削除してもよろしいですか？</p>
+        <p><strong id="deleteBookTitle"></strong></p>
+        <p class="text-danger">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          この操作は取り消せません
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+        <form id="singleDeleteForm" method="post">
+          <button type="submit" class="btn btn-danger">削除する</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 一括削除モーダル -->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">一括削除の確認</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>選択した <strong id="bulkDeleteCount"></strong> 冊の書籍を一括削除してもよろしいですか？</p>
+        <p class="text-danger">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          この操作は取り消せません
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+        <form action="{{ url_for('books.bulk_delete') }}" method="post">
+          <input type="hidden" id="bulkDeleteIds" name="book_ids">
+          <button type="submit" class="btn btn-danger">一括削除する</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 表示切替機能
+    $(document).ready(function() {
+        // グリッド表示
+        $('#gridView').click(function() {
+            $(this).addClass('active');
+            $('#listView').removeClass('active');
+            $('#booksGrid').removeClass('d-none');
+            $('#booksList').addClass('d-none');
+            localStorage.setItem('viewPreference', 'grid');
+        });
+        
+        // リスト表示
+        $('#listView').click(function() {
+            $(this).addClass('active');
+            $('#gridView').removeClass('active');
+            $('#booksList').removeClass('d-none');
+            $('#booksGrid').addClass('d-none');
+            localStorage.setItem('viewPreference', 'list');
+        });
+        
+        // 保存された表示設定を適用
+        var viewPreference = localStorage.getItem('viewPreference');
+        if (viewPreference === 'list') {
+            $('#listView').click();
+        }
+        
+        // チェックボックス選択の処理
+        $('.book-select').change(function() {
+            updateSelectedCount();
+        });
+        
+        // 全選択チェックボックスの処理
+        $('#selectAll').change(function() {
+            $('.book-select').prop('checked', $(this).prop('checked'));
+            updateSelectedCount();
+        });
+        
+        // 選択数の更新
+        function updateSelectedCount() {
+            const selectedCount = $('.book-select:checked').length;
+            $('#selectedCount').text(selectedCount);
+            
+            if (selectedCount > 0) {
+                $('#bulkActionBar').removeClass('d-none');
+            } else {
+                $('#bulkActionBar').addClass('d-none');
+            }
+        }
+        
+        // 個別削除ボタンの処理
+        $('.delete-book').click(function() {
+            const bookId = $(this).data('book-id');
+            const bookTitle = $(this).data('book-title');
+            
+            // 削除確認モーダルの内容を更新
+            $('#deleteBookTitle').text(bookTitle);
+            $('#singleDeleteForm').attr('action', '/books/' + bookId + '/delete');
+            
+            // モーダルを表示
+            $('#singleDeleteModal').modal('show');
+        });
+        
+        // 一括削除ボタンの処理
+        $('#bulkDeleteBtn').click(function() {
+            const selectedIds = [];
+            $('.book-select:checked').each(function() {
+                selectedIds.push($(this).val());
+            });
+            
+            // 確認モーダルの内容を更新
+            $('#bulkDeleteCount').text(selectedIds.length);
+            $('#bulkDeleteIds').val(selectedIds.join(','));
+            
+            // モーダルを表示
+            $('#bulkDeleteModal').modal('show');
+        });
+    });
+</script>
+{% endblock %}

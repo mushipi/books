@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}書籍コード一括抽出{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">書籍コード一括抽出</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">画像アップロード</h5>
+        </div>
+        <div class="card-body">
+            <form id="batch-form" action="{{ url_for('batch.upload') }}" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="images" class="form-label">書籍裏表紙の画像（複数選択可）</label>
+                    <input class="form-control" type="file" id="images" name="images" multiple accept=".jpg,.jpeg" required>
+                    <div class="form-text">JPEGフォーマットの画像のみ対応しています。</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">出力形式</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="output_format" id="output_csv" value="csv" checked>
+                        <label class="form-check-label" for="output_csv">CSV形式</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="output_format" id="output_json" value="json">
+                        <label class="form-check-label" for="output_json">JSON形式</label>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="use_ai" id="use_ai" value="true" checked>
+                        <label class="form-check-label" for="use_ai">
+                            Google Gemini APIを使用して認識精度を向上（処理時間が増加します）
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary" id="process-btn">処理開始</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card" id="preview-card" style="display: none;">
+        <div class="card-header">
+            <h5 class="mb-0">処理対象画像プレビュー</h5>
+        </div>
+        <div class="card-body">
+            <div class="row" id="image-preview"></div>
+        </div>
+    </div>
+    
+    <div class="card mt-4" id="processing-card" style="display: none;">
+        <div class="card-header">
+            <h5 class="mb-0">処理状況</h5>
+        </div>
+        <div class="card-body">
+            <div class="progress mb-3">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+            </div>
+            <div id="progress-text">処理を開始しています...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const imageInput = document.getElementById('images');
+        const previewCard = document.getElementById('preview-card');
+        const imagePreview = document.getElementById('image-preview');
+        const batchForm = document.getElementById('batch-form');
+        const processBtn = document.getElementById('process-btn');
+        const processingCard = document.getElementById('processing-card');
+        
+        // プレビュー表示
+        imageInput.addEventListener('change', function() {
+            imagePreview.innerHTML = '';
+            
+            if (this.files.length > 0) {
+                previewCard.style.display = 'block';
+                
+                Array.from(this.files).forEach((file, index) => {
+                    if (index >= 12) return; // 最大12枚まで表示
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const col = document.createElement('div');
+                        col.className = 'col-md-2 col-4 mb-3';
+                        
+                        const card = document.createElement('div');
+                        card.className = 'card h-100';
+                        
+                        const img = document.createElement('img');
+                        img.className = 'card-img-top';
+                        img.src = e.target.result;
+                        
+                        const cardBody = document.createElement('div');
+                        cardBody.className = 'card-body p-1';
+                        
+                        const title = document.createElement('p');
+                        title.className = 'card-text small text-truncate';
+                        title.textContent = file.name;
+                        
+                        cardBody.appendChild(title);
+                        card.appendChild(img);
+                        card.appendChild(cardBody);
+                        col.appendChild(card);
+                        imagePreview.appendChild(col);
+                    };
+                    reader.readAsDataURL(file);
+                });
+                
+                if (this.files.length > 12) {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-2 col-4 mb-3';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'card h-100 d-flex align-items-center justify-content-center';
+                    
+                    const cardBody = document.createElement('div');
+                    cardBody.className = 'card-body text-center';
+                    
+                    const text = document.createElement('p');
+                    text.className = 'card-text';
+                    text.textContent = `他 ${this.files.length - 12} 件`;
+                    
+                    cardBody.appendChild(text);
+                    card.appendChild(cardBody);
+                    col.appendChild(card);
+                    imagePreview.appendChild(col);
+                }
+            } else {
+                previewCard.style.display = 'none';
+            }
+        });
+        
+        // フォーム送信
+        batchForm.addEventListener('submit', function(e) {
+            if (imageInput.files.length === 0) {
+                return;
+            }
+            
+            // 処理中UI表示
+            processBtn.disabled = true;
+            processBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 処理中...';
+            processingCard.style.display = 'block';
+            
+            // フォームはそのまま送信（ZIPファイルがダウンロードされる）
+            // ただし、多数の画像を処理する場合は、Ajaxでの非同期処理の方が望ましい
+        });
+    });
+</script>
+{% endblock %}

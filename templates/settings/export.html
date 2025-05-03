@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}データエクスポート | のうら家 書籍データベース{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('settings.index') }}">設定</a></li>
+                <li class="breadcrumb-item active" aria-current="page">データエクスポート</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="mb-3"><i class="fas fa-file-export me-2"></i>データエクスポート</h1>
+        <p class="text-muted">
+            書籍データをエクスポートします。CSVまたはJSON形式を選択できます。
+            エクスポートされたデータはバックアップや他のアプリケーションでの利用に使用できます。
+        </p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">エクスポート設定</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-4">
+                        <label class="form-label">エクスポート形式</label>
+                        <div class="d-flex">
+                            <div class="form-check me-4">
+                                <input class="form-check-input" type="radio" name="format" id="formatCsv" value="csv" checked>
+                                <label class="form-check-label" for="formatCsv">
+                                    <i class="fas fa-file-csv me-1 text-success"></i> CSV形式
+                                </label>
+                                <div class="form-text">カンマ区切りテキスト形式（Excel等で開けます）</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="format" id="formatJson" value="json">
+                                <label class="form-check-label" for="formatJson">
+                                    <i class="fas fa-file-code me-1 text-primary"></i> JSON形式
+                                </label>
+                                <div class="form-text">構造化データ形式（他のアプリケーションでの利用に）</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="fw-bold">エクスポート対象</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="exportBooks" checked disabled>
+                            <label class="form-check-label" for="exportBooks">
+                                書籍データ
+                            </label>
+                        </div>
+                        <div class="form-text mb-2">書籍の基本情報は常にエクスポートされます</div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="exportGenres" checked disabled>
+                            <label class="form-check-label" for="exportGenres">
+                                ジャンル情報
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="exportTags" checked disabled>
+                            <label class="form-check-label" for="exportTags">
+                                タグ情報
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="exportLocations" checked disabled>
+                            <label class="form-check-label" for="exportLocations">
+                                収納場所情報
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-download me-1"></i> エクスポート実行
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">エクスポートについての注意</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    現在のエクスポート機能は以下の情報を含みます：
+                </div>
+                
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>データ種別</th>
+                            <th>エクスポート内容</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>書籍データ</td>
+                            <td>タイトル、著者、出版社、ISBN、JANコード、出版日、価格、ページ数、メモ、追加日</td>
+                        </tr>
+                        <tr>
+                            <td>ジャンル情報</td>
+                            <td>各書籍に設定されているジャンル</td>
+                        </tr>
+                        <tr>
+                            <td>タグ情報</td>
+                            <td>各書籍に設定されているタグ</td>
+                        </tr>
+                        <tr>
+                            <td>収納場所情報</td>
+                            <td>各書籍の保管場所</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>ご注意：</strong> 表紙画像はエクスポートされません。
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">データ統計</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col">
+                        <div class="border rounded p-3">
+                            <span class="d-block fw-bold fs-3">{{ book_count }}</span>
+                            <small class="text-muted">書籍</small>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="border rounded p-3">
+                            <span class="d-block fw-bold fs-3">{{ genres|length }}</span>
+                            <small class="text-muted">ジャンル</small>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="border rounded p-3">
+                            <span class="d-block fw-bold fs-3">{{ tags|length }}</span>
+                            <small class="text-muted">タグ</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
