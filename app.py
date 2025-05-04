@@ -242,5 +242,6 @@ if __name__ == '__main__':
         print('高度な認識機能を有効化するには、install_gemini_api.batを実行してください')
     print('='*50)
     
-    # 開発サーバーの実行
-    app.run(host=host, port=port, debug=True)
+    # 開発サーバーの実行 - デバッグモードはプロダクションでは無効化
+    debug_mode = os.environ.get('FLASK_ENV', '') != 'production'
+    app.run(host=host, port=port, debug=debug_mode)

@@ -84,6 +84,22 @@ class ApiService:
             # ISBNの正規化（ハイフン除去）
             clean_isbn = isbn.replace("-", "")
             
+            # JANコードがNONの場合は空文字に置き換える
+            if isbn == "NON":
+                logger.warning("NONが指定されました。検索をスキップします。")
+                return {
+                    'title': '',
+                    'author': '',
+                    'publisher': '',
+                    'isbn': '',
+                    'jan_code': '',
+                    'c_code': '',
+                    'published_date': '',
+                    'cover_url': '',
+                    'price': None,
+                    'page_count': None
+                }
+            
             url = f"{self.openbd_api_url}?isbn={clean_isbn}"
             logger.info(f"OpenBD APIリクエスト: {url}")
             
@@ -115,12 +131,34 @@ class ApiService:
             dict: 整形された書籍情報
         """
         summary = data.get('summary', {})
+        isbn = summary.get('isbn', '')
+        
+        # Cコードを抽出する試行
+        c_code = ''
+        try:
+            # onixデータからCコードを抽出する試行
+            onix = data.get('onix', {})
+            descriptive_detail = onix.get('DescriptiveDetail', {})
+            subjects = descriptive_detail.get('Subject', [])
+            
+            # Subject配列からCコードを探す
+            for subject in subjects:
+                subject_scheme = subject.get('SubjectSchemeIdentifier', '')
+                if subject_scheme == 'C' or subject_scheme == '78':
+                    subject_code = subject.get('SubjectCode', '')
+                    if subject_code.startswith('C'):
+                        c_code = subject_code
+                        break
+        except Exception as e:
+            logger.warning(f"Cコードの抽出に失敗しました: {e}")
         
         return {
             'title': summary.get('title', ''),
             'author': summary.get('author', ''),
             'publisher': summary.get('publisher', ''),
-            'isbn': summary.get('isbn', ''),
+            'isbn': isbn,
+            'jan_code': isbn,  # ISBNをJANコードとしても設定
+            'c_code': c_code,  # 抽出したCコードを設定
             'published_date': summary.get('pubdate', ''),
             'cover_url': summary.get('cover', ''),
             'price': self._extract_price(summary.get('price', '')),

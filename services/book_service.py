@@ -103,11 +103,15 @@ class BookService:
             return None
         
         # 書籍エンティティを作成
+        jan_code_clean = '' if jan_code == 'NON' else jan_code
+        
         book = Book(
             title=book_info.get('title', ''),
             author=book_info.get('author', ''),
             publisher=book_info.get('publisher', ''),
             isbn=jan_code,
+            jan_code=jan_code_clean,
+            c_code=book_info.get('c_code', ''),
             published_date=book_info.get('published_date', ''),
             cover_image_path=book_info.get('cover_image_path'),
             price=book_info.get('price'),

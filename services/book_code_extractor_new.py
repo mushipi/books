@@ -337,8 +337,13 @@ class BookCodeExtractor:
                         
                     # 結果を更新
                     for key, value in cached_results.items():
-                        if key in results and (results[key] is None and value is not None and value != "null"):
-                            results[key] = value
+                        if key in results:
+                            # NONの場合は空文字列に変換
+                            if value == "NON":
+                                results[key] = ""
+                            # 元の値がNoneで、直返値が有効な場合に更新
+                            elif results[key] is None and value is not None and value != "null":
+                                results[key] = value
                             
                     print(f"[情報] キャッシュから結果を読み込みました: {image_path}")
                     return
@@ -403,8 +408,13 @@ class BookCodeExtractor:
                         
                         # 結果を更新（既存の値がある場合は上書きしない）
                         for key, value in extracted_data.items():
-                            if key in results and (results[key] is None and value is not None and value != "null"):
-                                results[key] = value
+                            if key in results:
+                                # NONの場合は空文字列に変換
+                                if value == "NON" or value == "non":
+                                    results[key] = ""
+                                # 元の値がNoneで、直返値が有効な場合に更新
+                                elif results[key] is None and value is not None and value != "null":
+                                    results[key] = value
                         
                         # キャッシュに保存
                         with open(cache_file, 'w', encoding='utf-8') as f:

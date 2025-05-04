@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, current_app
 import os
 import tempfile
+import re
 
 # サービスのインポート
 from services.book_code_extractor import BookCodeExtractor
@@ -74,11 +75,23 @@ def upload():
             book_info = api_service.lookup_isbn(isbn_code)
         
         if book_info:
-            # 抽出したCコードと価格情報を追加
+            # 抽出したJANコード、Cコード、価格情報を追加
+            # JANコードが検出された場合は設定（ただし'NON'の場合は空文字）
+            if extracted_codes.get('jan_barcode'):
+                jan_code = extracted_codes['jan_barcode']
+                book_info['jan_code'] = '' if jan_code == 'NON' else jan_code
+            
+            # Cコードが検出された場合は設定
             if extracted_codes.get('c_code'):
                 book_info['c_code'] = extracted_codes['c_code']
+            
+            # 価格情報が検出された場合は設定
             if extracted_codes.get('price_code'):
-                book_info['price_code'] = extracted_codes['price_code']
+                price_code = extracted_codes['price_code']
+                # 価格コードから数値のみを抽出（¥1000Eなどから数値のみを取得）
+                price_match = re.search(r'\d+', price_code)
+                if price_match:
+                    book_info['price'] = int(price_match.group(0))
             
             return jsonify({
                 'success': True,

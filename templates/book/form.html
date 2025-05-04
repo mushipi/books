@@ -79,15 +79,21 @@
                     
                     <div class="row">
                         <!-- ISBN -->
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="isbn" class="form-label">ISBN</label>
                             <input type="text" class="form-control" id="isbn" name="isbn" value="{% if action == 'edit' %}{{ book.isbn }}{% else %}{{ isbn }}{% endif %}" placeholder="例: 9784774142230">
                         </div>
                         
                         <!-- JANコード -->
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="jan_code" class="form-label">JANコード</label>
                             <input type="text" class="form-control" id="jan_code" name="jan_code" value="{% if action == 'edit' %}{{ book.jan_code }}{% else %}{{ jan_code }}{% endif %}" placeholder="例: 4901234567894">
+                        </div>
+                        
+                        <!-- Cコード -->
+                        <div class="col-md-4 mb-3">
+                            <label for="c_code" class="form-label">Cコード</label>
+                            <input type="text" class="form-control" id="c_code" name="c_code" value="{% if action == 'edit' %}{{ book.c_code }}{% else %}{{ c_code }}{% endif %}" placeholder="例: C3055">
                         </div>
                     </div>
                     
@@ -129,10 +135,10 @@
                 </div>
                 <div class="card-body text-center">
                     <div class="cover-preview mb-3">
-                        {% if action == 'edit' and book.cover_image_path %}
-                        <img src="{{ url_for('static', filename=book.cover_image_path) }}" class="img-fluid img-thumbnail" alt="表紙画像" id="cover-preview">
-                        {% elif cover_image_path %}
-                        <img src="{{ url_for('static', filename=cover_image_path) }}" class="img-fluid img-thumbnail" alt="表紙画像" id="cover-preview">
+                        {% if action == 'edit' and book.cover_image_path and book.cover_image_path|length > 0 %}
+                        <img src="{{ url_for('static', filename=book.cover_image_path) }}" class="img-fluid img-thumbnail" alt="表紙画像" id="cover-preview" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\"border rounded p-5 bg-light\"><i class=\"fas fa-book fa-4x text-secondary\"></i><p class=\"mt-3 text-muted\">表紙画像読み込みエラー</p></div>';">
+                        {% elif cover_image_path and cover_image_path|length > 0 %}
+                        <img src="{{ url_for('static', filename=cover_image_path) }}" class="img-fluid img-thumbnail" alt="表紙画像" id="cover-preview" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\"border rounded p-5 bg-light\"><i class=\"fas fa-book fa-4x text-secondary\"></i><p class=\"mt-3 text-muted\">表紙画像読み込みエラー</p></div>';">
                         {% else %}
                         <div class="border rounded p-5 bg-light">
                             <i class="fas fa-book fa-4x text-secondary"></i>

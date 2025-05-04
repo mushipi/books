@@ -22,6 +22,7 @@ class Book(db.Model):
     publisher = db.Column(db.String(100))
     isbn = db.Column(db.String(20))
     jan_code = db.Column(db.String(20))
+    c_code = db.Column(db.String(20))
     published_date = db.Column(db.String(20))
     price = db.Column(db.Integer)
     page_count = db.Column(db.Integer)

@@ -5,6 +5,7 @@
 
 import os
 import sys
+import argparse
 
 # バーコード機能を無効化する環境変数を設定
 os.environ['DISABLE_BARCODE'] = 'true'
@@ -90,24 +91,43 @@ def seed_db():
         db.session.commit()
         print("初期データの投入が完了しました")
 
+def parse_args():
+    """コマンドライン引数の解析"""
+    parser = argparse.ArgumentParser(description='データベース初期化ユーティリティ')
+    parser.add_argument('--init', action='store_true', help='データベースの初期化')
+    parser.add_argument('--seed', action='store_true', help='初期データの投入')
+    parser.add_argument('--init-with-seed', action='store_true', help='データベースの初期化と初期データの投入')
+    return parser.parse_args()
+
 if __name__ == "__main__":
-    # 操作の選択
-    print("=" * 50)
-    print("データベース管理ユーティリティ")
-    print("=" * 50)
-    print("1: データベースの初期化")
-    print("2: 初期データの投入")
-    print("3: 両方実行（初期化+初期データ投入）")
-    print("=" * 50)
+    args = parse_args()
     
-    choice = input("操作を選択してください (1-3): ")
-    
-    if choice == "1":
+    # コマンドライン引数がある場合はそれに従って処理
+    if args.init_with_seed:
         init_db()
-    elif choice == "2":
         seed_db()
-    elif choice == "3":
+    elif args.init:
         init_db()
+    elif args.seed:
         seed_db()
     else:
-        print("無効な選択です。プログラムを終了します。")
+        # 引数がない場合は対話モードで実行
+        print("=" * 50)
+        print("データベース管理ユーティリティ")
+        print("=" * 50)
+        print("1: データベースの初期化")
+        print("2: 初期データの投入")
+        print("3: 両方実行（初期化+初期データ投入）")
+        print("=" * 50)
+        
+        choice = input("操作を選択してください (1-3): ")
+        
+        if choice == "1":
+            init_db()
+        elif choice == "2":
+            seed_db()
+        elif choice == "3":
+            init_db()
+            seed_db()
+        else:
+            print("無効な選択です。プログラムを終了します。")

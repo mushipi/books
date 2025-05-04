@@ -114,6 +114,10 @@ def new():
         publisher = request.form.get('publisher', '')
         isbn = request.form.get('isbn', '')
         jan_code = request.form.get('jan_code', '')
+        # JANコードが'NON'の場合は空文字列に置き換える
+        if jan_code == 'NON':
+            jan_code = ''
+        c_code = request.form.get('c_code', '')
         published_date = request.form.get('published_date', '')
         price = request.form.get('price', None)
         page_count = request.form.get('page_count', None)
@@ -128,7 +132,11 @@ def new():
             try:
                 price = int(price)
             except ValueError:
-                price = None
+                # 空の文字列や数値に変換できない場合は0として扱う
+                price = 0
+        else:
+            # 価格が指定されていない場合は0として扱う
+            price = 0
         
         if page_count:
             try:
@@ -149,6 +157,7 @@ def new():
             publisher=publisher,
             isbn=isbn,
             jan_code=jan_code,
+            c_code=c_code,
             published_date=published_date,
             price=price,
             page_count=page_count,
@@ -198,6 +207,8 @@ def new():
     price = request.args.get('price', '')
     page_count = request.args.get('page_count', '')
     cover_image_path = request.args.get('cover_image_path', '')
+    jan_code = request.args.get('jan_code', '')
+    c_code = request.args.get('c_code', '')
     
     return render_template(
         'book/form.html',
@@ -212,6 +223,8 @@ def new():
         price=price,
         page_count=page_count,
         cover_image_path=cover_image_path,
+        jan_code=jan_code,
+        c_code=c_code,
         barcode_enabled=barcode_enabled
     )
 
@@ -226,7 +239,12 @@ def edit(book_id):
         book.author = request.form.get('author', '')
         book.publisher = request.form.get('publisher', '')
         book.isbn = request.form.get('isbn', '')
-        book.jan_code = request.form.get('jan_code', '')
+        jan_code = request.form.get('jan_code', '')
+        # JANコードが'NON'の場合は空文字列に置き換える
+        if jan_code == 'NON':
+            jan_code = ''
+        book.jan_code = jan_code
+        book.c_code = request.form.get('c_code', '')
         book.published_date = request.form.get('published_date', '')
         book.memo = request.form.get('memo', '')
         
@@ -236,9 +254,11 @@ def edit(book_id):
             try:
                 book.price = int(price)
             except ValueError:
-                pass
+                # 空の文字列や数値に変換できない場合は0として扱う
+                book.price = 0
         else:
-            book.price = None
+            # 価格が指定されていない場合は0として扱う
+            book.price = 0
         
         page_count = request.form.get('page_count', None)
         if page_count:
@@ -260,8 +280,15 @@ def edit(book_id):
         
         # 表紙画像パスの更新（変更がある場合のみ）
         new_cover = request.form.get('cover_image_path', '')
-        if new_cover and new_cover != book.cover_image_path:
-            book.cover_image_path = new_cover
+        if new_cover:
+            # 空文字列の場合はNoneに変換する
+            if new_cover.strip() == '':
+                book.cover_image_path = None
+            elif new_cover != book.cover_image_path:
+                book.cover_image_path = new_cover
+        # フォームで明示的に削除された場合
+        elif 'cover_image_path' in request.form:
+            book.cover_image_path = None
         
         # ジャンルの更新
         book.genres = []  # 一旦リセット

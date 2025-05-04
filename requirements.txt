@@ -1,17 +1,12 @@
-Flask==2.2.5
-Flask-SQLAlchemy==2.5.1
-SQLAlchemy==1.4.46
-MarkupSafe==2.1.3
-
-# 画像処理・バーコード認識関連
-opencv-python==4.7.0.72
-numpy==1.24.3
-Pillow==10.3.0
-
-# Google Gemini API
-google-generativeai==0.3.2
-
-# HTTPリクエスト関連（APIアクセス用）
+Flask==2.3.3
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.23
+Pillow==10.1.0
 requests==2.31.0
-
-# その他（必要に応じて追加）
+Werkzeug==2.3.7
+python-dotenv==1.0.0
+gunicorn==21.2.0
+opencv-python-headless==4.8.1.78
+numpy==1.26.0
+pyzbar==0.1.9
+google-generativeai==0.3.1

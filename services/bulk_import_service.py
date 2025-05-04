@@ -41,6 +41,14 @@ class BulkImportService:
             info["image_path"] = image_path
             info["filename"] = os.path.basename(image_path)
             
+            # JANコードが'NON'の場合は空文字列に置き換え
+            if info.get("jan_barcode") == "NON":
+                info["jan_barcode"] = ""
+            
+            # Cコードが'NON'の場合は空文字列に置き換え
+            if info.get("c_code") == "NON":
+                info["c_code"] = ""
+                
             # 追加情報の設定
             info["default_genre_id"] = default_genre
             

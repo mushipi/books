@@ -709,6 +709,9 @@
             registerUrl += '&price=' + encodeURIComponent(bookData.price || '');
             registerUrl += '&page_count=' + encodeURIComponent(bookData.page_count || '');
             registerUrl += '&cover_image_path=' + encodeURIComponent(bookData.cover_image_path || '');
+            // JANコードとCコードも登録ページに渡す
+            registerUrl += '&jan_code=' + encodeURIComponent(bookData.jan_code || '');
+            registerUrl += '&c_code=' + encodeURIComponent(bookData.c_code || '');
             
             $('#register-link').attr('href', registerUrl);
             

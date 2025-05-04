@@ -356,6 +356,16 @@ def import_books():
             if not book_info or not isbn:
                 continue
             
+            # JANコードの取得と処理（NONの場合は空文字に）
+            jan_code = book_data.get('codes', {}).get('jan_barcode', '')
+            if jan_code == 'NON':
+                jan_code = ''
+                
+            # Cコードの取得
+            c_code = book_data.get('codes', {}).get('c_code', '')
+            if c_code == 'NON':
+                c_code = ''
+            
             # 書籍モデルの作成
             new_book = Book(
                 title=book_info.get('title', '不明なタイトル'),
@@ -363,11 +373,12 @@ def import_books():
                 publisher=book_info.get('publisher', ''),
                 published_date=book_info.get('published_date', ''),
                 isbn=isbn,
-                jan_code=book_data.get('codes', {}).get('jan_barcode', ''),
+                jan_code=jan_code,
+                c_code=c_code,
                 price=0,  # 後で価格情報から設定
                 page_count=book_info.get('page_count', 0),
                 added_date=datetime.now().strftime('%Y-%m-%d'),
-                memo=f"Cコード: {book_data.get('codes', {}).get('c_code', '')}"
+                memo=''
             )
             
             # 価格情報の設定
