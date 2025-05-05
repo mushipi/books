@@ -1,0 +1,50 @@
+[
+  {
+    "filename": "9784274227387.jpg",
+    "isbn": "9784274227387",
+    "path": "c:\\Users\\lovet\\sauce\\book_manager\\static\\covers\\9784274227387.jpg",
+    "size": 13597,
+    "size_str": "13.3 KB",
+    "url": "file:///c:/Users/lovet/sauce/book_manager/static/covers/9784274227387.jpg"
+  },
+  {
+    "filename": "9784478013328.jpg",
+    "isbn": "9784478013328",
+    "path": "c:\\Users\\lovet\\sauce\\book_manager\\static\\covers\\9784478013328.jpg",
+    "size": 8263,
+    "size_str": "8.1 KB",
+    "url": "file:///c:/Users/lovet/sauce/book_manager/static/covers/9784478013328.jpg"
+  },
+  {
+    "filename": "9784798067278.jpg",
+    "isbn": "9784798067278",
+    "path": "c:\\Users\\lovet\\sauce\\book_manager\\static\\covers\\9784798067278.jpg",
+    "size": 17757,
+    "size_str": "17.3 KB",
+    "url": "file:///c:/Users/lovet/sauce/book_manager/static/covers/9784798067278.jpg"
+  },
+  {
+    "filename": "9784798171944.jpg",
+    "isbn": "9784798171944",
+    "path": "c:\\Users\\lovet\\sauce\\book_manager\\static\\covers\\9784798171944.jpg",
+    "size": 16536,
+    "size_str": "16.1 KB",
+    "url": "file:///c:/Users/lovet/sauce/book_manager/static/covers/9784798171944.jpg"
+  },
+  {
+    "filename": "9784802614801.jpg",
+    "isbn": "9784802614801",
+    "path": "c:\\Users\\lovet\\sauce\\book_manager\\static\\covers\\9784802614801.jpg",
+    "size": 21643,
+    "size_str": "21.1 KB",
+    "url": "file:///c:/Users/lovet/sauce/book_manager/static/covers/9784802614801.jpg"
+  },
+  {
+    "filename": "9784839968373.jpg",
+    "isbn": "9784839968373",
+    "path": "c:\\Users\\lovet\\sauce\\book_manager\\static\\covers\\9784839968373.jpg",
+    "size": 17269,
+    "size_str": "16.9 KB",
+    "url": "file:///c:/Users/lovet/sauce/book_manager/static/covers/9784839968373.jpg"
+  }
+]

@@ -17,6 +17,7 @@ from models.book import db
 from models.genre import Genre
 from models.tag import Tag
 from models.location import Location
+from models.users.user import User
 from app import create_app
 
 # アプリケーションのコンテキストを作成
@@ -86,6 +87,17 @@ def seed_db():
             existing = Tag.query.filter_by(name=tag.name).first()
             if not existing:
                 db.session.add(tag)
+        
+        # ユーザー
+        users = [
+            User(username="admin", email="admin@example.com", password="password", is_admin=True),
+            User(username="user1", email="user1@example.com", password="password")
+        ]
+        
+        for user in users:
+            existing = User.query.filter_by(username=user.username).first()
+            if not existing:
+                db.session.add(user)
         
         # 変更をコミット
         db.session.commit()

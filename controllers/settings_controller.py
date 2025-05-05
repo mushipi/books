@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, send_file
+from flask_login import login_required, current_user
 from models.book import db, Book
 from models.genre import Genre
 from models.tag import Tag
@@ -11,12 +12,14 @@ from datetime import datetime
 settings_bp = Blueprint('settings', __name__, url_prefix='/settings')
 
 @settings_bp.route('/')
+@login_required
 def index():
     """設定メインページ"""
     return render_template('settings/index.html')
 
 # ジャンル管理
 @settings_bp.route('/genres', methods=['GET', 'POST'])
+@login_required
 def genres():
     """ジャンル管理ページ"""
     if request.method == 'POST':
@@ -104,6 +107,7 @@ def genres():
 
 # タグ管理
 @settings_bp.route('/tags', methods=['GET', 'POST'])
+@login_required
 def tags():
     """タグ管理ページ"""
     if request.method == 'POST':
@@ -179,6 +183,7 @@ def tags():
 
 # 収納場所管理
 @settings_bp.route('/locations', methods=['GET', 'POST'])
+@login_required
 def locations():
     """収納場所管理ページ"""
     if request.method == 'POST':
@@ -262,6 +267,7 @@ def locations():
 
 # データエクスポート
 @settings_bp.route('/export', methods=['GET', 'POST'])
+@login_required
 def export():
     """データエクスポートページ"""
     if request.method == 'POST':

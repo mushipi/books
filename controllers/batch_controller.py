@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, current_app, send_file
+from flask_login import login_required, current_user
 import os
 import tempfile
 import zipfile
@@ -13,6 +14,7 @@ from services.book_code_extractor import BookCodeExtractor
 batch_bp = Blueprint('batch', __name__, url_prefix='/batch')
 
 @batch_bp.route('/')
+@login_required
 def index():
     """
     バッチ処理画面を表示
@@ -20,6 +22,7 @@ def index():
     return render_template('batch/index.html')
 
 @batch_bp.route('/upload', methods=['POST'])
+@login_required
 def upload():
     """
     複数画像のアップロードとバッチ処理
@@ -153,6 +156,7 @@ def upload():
         pass
 
 @batch_bp.route('/api/process', methods=['POST'])
+@login_required
 def api_process():
     """
     APIとしてのバッチ処理（JSON形式のレスポンスを返す）

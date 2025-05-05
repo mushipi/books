@@ -1,14 +1,17 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
+from flask_login import login_required, current_user
 from models.book import db, Book
 from models.genre import Genre
 from models.tag import Tag
 from models.location import Location
+from helpers import cover_image_exists
 from datetime import datetime
 import os
 
 book_bp = Blueprint('books', __name__, url_prefix='/books')
 
 @book_bp.route('/')
+@login_required
 def index():
     """書籍一覧ページ"""
     page = request.args.get('page', 1, type=int)
@@ -96,12 +99,14 @@ def index():
     )
 
 @book_bp.route('/<int:book_id>')
+@login_required
 def detail(book_id):
     """書籍詳細ページ"""
     book = Book.query.get_or_404(book_id)
     return render_template('book/detail.html', book=book)
 
 @book_bp.route('/new', methods=['GET', 'POST'])
+@login_required
 def new():
     """書籍新規登録ページ"""
     # バーコード機能の状態を取得
@@ -125,7 +130,15 @@ def new():
         location_id = request.form.get('location_id', None)
         genre_ids = request.form.getlist('genres')
         tag_names = request.form.get('tags', '').split(',')
+        # 表紙画像パスの处理と確認
         cover_image_path = request.form.get('cover_image_path', '')
+        if cover_image_path and cover_image_path.strip():
+            # ファイルの存在確認
+            if not cover_image_exists(cover_image_path):
+                cover_image_path = None
+                flash('指定された表紙画像は存在しませんでした', 'warning')
+        else:
+            cover_image_path = None
         
         # 数値変換
         if price:
@@ -229,6 +242,7 @@ def new():
     )
 
 @book_bp.route('/<int:book_id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit(book_id):
     """書籍編集ページ"""
     book = Book.query.get_or_404(book_id)
@@ -278,16 +292,22 @@ def edit(book_id):
         else:
             book.location_id = None
         
-        # 表紙画像パスの更新（変更がある場合のみ）
+        # 表紙画像パスの存在を確認してから更新
         new_cover = request.form.get('cover_image_path', '')
-        if new_cover:
-            # 空文字列の場合はNoneに変換する
-            if new_cover.strip() == '':
-                book.cover_image_path = None
-            elif new_cover != book.cover_image_path:
+        
+        if new_cover and new_cover.strip():
+            # 空でない場合、ファイルの存在を確認
+            if cover_image_exists(new_cover):
+                # 存在する場合はパスを更新
                 book.cover_image_path = new_cover
-        # フォームで明示的に削除された場合
-        elif 'cover_image_path' in request.form:
+            else:
+                # 存在しない場合はエラーメッセージを表示
+                flash('表紙画像ファイルが見つかりませんでした： ' + new_cover, 'warning')
+                # 現在のパスも存在しない場合はNullに設定
+                if not cover_image_exists(book.cover_image_path):
+                    book.cover_image_path = None
+        elif new_cover == '' and 'cover_image_path' in request.form:
+            # 空文字列が送信された場合は表紙を削除
             book.cover_image_path = None
         
         # ジャンルの更新
@@ -337,6 +357,7 @@ def edit(book_id):
     )
 
 @book_bp.route('/<int:book_id>/delete', methods=['POST'])
+@login_required
 def delete(book_id):
     """書籍削除処理"""
     book = Book.query.get_or_404(book_id)
@@ -360,6 +381,7 @@ def delete(book_id):
     return redirect(url_for('books.index'))
 
 @book_bp.route('/bulk-delete', methods=['POST'])
+@login_required
 def bulk_delete():
     """複数書籍の一括削除処理"""
     book_ids = request.form.get('book_ids', '')
@@ -394,6 +416,7 @@ def bulk_delete():
     return redirect(url_for('books.index'))
 
 @book_bp.route('/api/search')
+@login_required
 def api_search():
     """書籍検索API（JSONレスポンス）"""
     search_query = request.args.get('q', '')
@@ -420,6 +443,7 @@ def api_search():
     return jsonify(books_data)
 
 @book_bp.route('/test-image/<isbn>')
+@login_required
 def test_image(isbn):
     """画像表示テストページ"""
     # ISBNから書籍を検索
@@ -435,6 +459,7 @@ def test_image(isbn):
     return render_template('test_image.html', isbn=clean_isbn, book=book)
 
 @book_bp.route('/debug-covers')
+@login_required
 def debug_covers():
     """表紙画像デバッグページ"""
     # 表紙画像がある書籍を優先的に取得

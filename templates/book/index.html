@@ -128,9 +128,9 @@
             </div>
             <div class="row g-0">
                 <div class="col-4 col-md-12 d-flex align-items-center bg-light p-2">
-                    {% if book.cover_image_path and book.cover_image_path|length > 0 %}
-                    <!-- 直接リンクで画像を試す -->
-                    <img src="/static/{{ book.cover_image_path }}" class="img-fluid rounded mx-auto d-block" alt="{{ book.title }}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\"text-center w-100 py-5\"><i class=\"fas fa-book fa-4x text-secondary\"></i></div>';">
+                    {% if cover_image_exists(book.cover_image_path) %}
+                    <!-- 絶対パスを使用 -->
+                    <img src="{{ get_cover_url(book.cover_image_path) }}" class="img-fluid rounded mx-auto d-block" alt="{{ book.title }}">
                     {% else %}
                     <div class="text-center w-100 py-5">
                         <i class="fas fa-book fa-4x text-secondary"></i>
@@ -209,8 +209,8 @@
                 {% for book in books %}
                 <tr>
                     <td style="width: 60px;">
-                        {% if book.cover_image_path %}
-                        <img src="{{ url_for('static', filename=book.cover_image_path) }}" class="img-thumbnail" alt="{{ book.title }}" style="max-height: 60px;">
+                        {% if cover_image_exists(book.cover_image_path) %}
+                        <img src="{{ get_cover_url(book.cover_image_path) }}" class="img-thumbnail" alt="{{ book.title }}" style="max-height: 60px;">
                         {% else %}
                         <div class="text-center">
                             <i class="fas fa-book fa-2x text-secondary"></i>

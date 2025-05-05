@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>表紙画像直接アクセス</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .cover-item { border: 1px solid #ccc; padding: 15px; border-radius: 5px; }
+        .cover-img { max-height: 200px; max-width: 100%; display: block; margin: 10px auto; }
+        .info { margin-bottom: 10px; }
+        .path { font-family: monospace; background: #f5f5f5; padding: 5px; word-break: break-all; margin: 5px 0; }
+        h1, h2, h3 { color: #333; }
+        button { padding: 5px 10px; background: #f0f0f0; border: 1px solid #ddd; cursor: pointer; }
+        button:hover { background: #e0e0e0; }
+        .copy-btn { margin-left: 5px; }
+        .status { color: green; display: none; }
+    </style>
+</head>
+<body>
+    <h1>表紙画像直接アクセス</h1>
+    <p>表紙画像ファイル数: <strong>6</strong> 個</p>
+    
+    <div class="container">
+
+        <div class="cover-item">
+            <h3>9784274227387.jpg</h3>
+            <div class="info">ISBN: 9784274227387</div>
+            <div class="info">サイズ: 13.3 KB</div>
+            
+            <div class="path">
+                絶対パス: 
+                <code id="path-9784274227387">c:\Users\lovet\sauce\book_manager\static\covers\9784274227387.jpg</code>
+                <button class="copy-btn" onclick="copyText('path-9784274227387')">コピー</button>
+                <span class="status" id="status-path-9784274227387">✓</span>
+            </div>
+            
+            <div class="path">
+                ファイルURL: 
+                <code id="url-9784274227387">file:///c:/Users/lovet/sauce/book_manager/static/covers/9784274227387.jpg</code>
+                <button class="copy-btn" onclick="copyText('url-9784274227387')">コピー</button>
+                <span class="status" id="status-url-9784274227387">✓</span>
+            </div>
+            
+            <img src="file:///c:/Users/lovet/sauce/book_manager/static/covers/9784274227387.jpg" alt="9784274227387.jpg" class="cover-img" 
+                 onerror="this.onerror=null; this.src=''; this.alt='読み込みエラー'; this.style.height='100px'; this.style.border='1px dashed red';">
+        </div>
+        
+        <div class="cover-item">
+            <h3>9784478013328.jpg</h3>
+            <div class="info">ISBN: 9784478013328</div>
+            <div class="info">サイズ: 8.1 KB</div>
+            
+            <div class="path">
+                絶対パス: 
+                <code id="path-9784478013328">c:\Users\lovet\sauce\book_manager\static\covers\9784478013328.jpg</code>
+                <button class="copy-btn" onclick="copyText('path-9784478013328')">コピー</button>
+                <span class="status" id="status-path-9784478013328">✓</span>
+            </div>
+            
+            <div class="path">
+                ファイルURL: 
+                <code id="url-9784478013328">file:///c:/Users/lovet/sauce/book_manager/static/covers/9784478013328.jpg</code>
+                <button class="copy-btn" onclick="copyText('url-9784478013328')">コピー</button>
+                <span class="status" id="status-url-9784478013328">✓</span>
+            </div>
+            
+            <img src="file:///c:/Users/lovet/sauce/book_manager/static/covers/9784478013328.jpg" alt="9784478013328.jpg" class="cover-img" 
+                 onerror="this.onerror=null; this.src=''; this.alt='読み込みエラー'; this.style.height='100px'; this.style.border='1px dashed red';">
+        </div>
+        
+        <div class="cover-item">
+            <h3>9784798067278.jpg</h3>
+            <div class="info">ISBN: 9784798067278</div>
+            <div class="info">サイズ: 17.3 KB</div>
+            
+            <div class="path">
+                絶対パス: 
+                <code id="path-9784798067278">c:\Users\lovet\sauce\book_manager\static\covers\9784798067278.jpg</code>
+                <button class="copy-btn" onclick="copyText('path-9784798067278')">コピー</button>
+                <span class="status" id="status-path-9784798067278">✓</span>
+            </div>
+            
+            <div class="path">
+                ファイルURL: 
+                <code id="url-9784798067278">file:///c:/Users/lovet/sauce/book_manager/static/covers/9784798067278.jpg</code>
+                <button class="copy-btn" onclick="copyText('url-9784798067278')">コピー</button>
+                <span class="status" id="status-url-9784798067278">✓</span>
+            </div>
+            
+            <img src="file:///c:/Users/lovet/sauce/book_manager/static/covers/9784798067278.jpg" alt="9784798067278.jpg" class="cover-img" 
+                 onerror="this.onerror=null; this.src=''; this.alt='読み込みエラー'; this.style.height='100px'; this.style.border='1px dashed red';">
+        </div>
+        
+        <div class="cover-item">
+            <h3>9784798171944.jpg</h3>
+            <div class="info">ISBN: 9784798171944</div>
+            <div class="info">サイズ: 16.1 KB</div>
+            
+            <div class="path">
+                絶対パス: 
+                <code id="path-9784798171944">c:\Users\lovet\sauce\book_manager\static\covers\9784798171944.jpg</code>
+                <button class="copy-btn" onclick="copyText('path-9784798171944')">コピー</button>
+                <span class="status" id="status-path-9784798171944">✓</span>
+            </div>
+            
+            <div class="path">
+                ファイルURL: 
+                <code id="url-9784798171944">file:///c:/Users/lovet/sauce/book_manager/static/covers/9784798171944.jpg</code>
+                <button class="copy-btn" onclick="copyText('url-9784798171944')">コピー</button>
+                <span class="status" id="status-url-9784798171944">✓</span>
+            </div>
+            
+            <img src="file:///c:/Users/lovet/sauce/book_manager/static/covers/9784798171944.jpg" alt="9784798171944.jpg" class="cover-img" 
+                 onerror="this.onerror=null; this.src=''; this.alt='読み込みエラー'; this.style.height='100px'; this.style.border='1px dashed red';">
+        </div>
+        
+        <div class="cover-item">
+            <h3>9784802614801.jpg</h3>
+            <div class="info">ISBN: 9784802614801</div>
+            <div class="info">サイズ: 21.1 KB</div>
+            
+            <div class="path">
+                絶対パス: 
+                <code id="path-9784802614801">c:\Users\lovet\sauce\book_manager\static\covers\9784802614801.jpg</code>
+                <button class="copy-btn" onclick="copyText('path-9784802614801')">コピー</button>
+                <span class="status" id="status-path-9784802614801">✓</span>
+            </div>
+            
+            <div class="path">
+                ファイルURL: 
+                <code id="url-9784802614801">file:///c:/Users/lovet/sauce/book_manager/static/covers/9784802614801.jpg</code>
+                <button class="copy-btn" onclick="copyText('url-9784802614801')">コピー</button>
+                <span class="status" id="status-url-9784802614801">✓</span>
+            </div>
+            
+            <img src="file:///c:/Users/lovet/sauce/book_manager/static/covers/9784802614801.jpg" alt="9784802614801.jpg" class="cover-img" 
+                 onerror="this.onerror=null; this.src=''; this.alt='読み込みエラー'; this.style.height='100px'; this.style.border='1px dashed red';">
+        </div>
+        
+        <div class="cover-item">
+            <h3>9784839968373.jpg</h3>
+            <div class="info">ISBN: 9784839968373</div>
+            <div class="info">サイズ: 16.9 KB</div>
+            
+            <div class="path">
+                絶対パス: 
+                <code id="path-9784839968373">c:\Users\lovet\sauce\book_manager\static\covers\9784839968373.jpg</code>
+                <button class="copy-btn" onclick="copyText('path-9784839968373')">コピー</button>
+                <span class="status" id="status-path-9784839968373">✓</span>
+            </div>
+            
+            <div class="path">
+                ファイルURL: 
+                <code id="url-9784839968373">file:///c:/Users/lovet/sauce/book_manager/static/covers/9784839968373.jpg</code>
+                <button class="copy-btn" onclick="copyText('url-9784839968373')">コピー</button>
+                <span class="status" id="status-url-9784839968373">✓</span>
+            </div>
+            
+            <img src="file:///c:/Users/lovet/sauce/book_manager/static/covers/9784839968373.jpg" alt="9784839968373.jpg" class="cover-img" 
+                 onerror="this.onerror=null; this.src=''; this.alt='読み込みエラー'; this.style.height='100px'; this.style.border='1px dashed red';">
+        </div>
+        
+    </div>
+    
+    <script>
+    function copyText(elementId) {
+        const element = document.getElementById(elementId);
+        const text = element.textContent;
+        
+        navigator.clipboard.writeText(text).then(function() {
+            // コピー成功
+            const statusId = 'status-' + elementId;
+            const status = document.getElementById(statusId);
+            status.style.display = 'inline';
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 2000);
+        })
+        .catch(function() {
+            // エラー処理
+            alert('クリップボードへのコピーに失敗しました');
+        });
+    }
+    </script>
+</body>
+</html>

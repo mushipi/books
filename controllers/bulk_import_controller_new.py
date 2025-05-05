@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app, jsonify
+from flask_login import login_required, current_user
 import os
 import time
 from models.genre import Genre
@@ -11,12 +12,14 @@ from services.book_code_extractor import BookCodeExtractor
 bulk_import_bp = Blueprint('bulk_import', __name__, url_prefix='/bulk-import')
 
 @bulk_import_bp.route('/', methods=['GET'])
+@login_required
 def index():
     """一括取り込みフォーム"""
     genres = Genre.query.order_by(Genre.name).all()
     return render_template('bulk_import/form.html', genres=genres)
 
 @bulk_import_bp.route('/scan', methods=['POST'])
+@login_required
 def scan():
     """フォルダのスキャン処理"""
     folder_path = request.form.get('folder_path')
@@ -60,6 +63,7 @@ def scan():
         return redirect(url_for('bulk_import.index'))
 
 @bulk_import_bp.route('/import', methods=['POST'])
+@login_required
 def import_books():
     """選択された書籍のインポート実行"""
     # セッションからスキャン結果を取得
@@ -110,6 +114,7 @@ def import_books():
                               folder_path=folder_path)
 
 @bulk_import_bp.route('/status', methods=['GET'])
+@login_required
 def get_status():
     """処理状況を取得するAPIエンドポイント"""
     # 進捗状況をJSONで返す
@@ -126,6 +131,7 @@ def get_status():
     })
 
 @bulk_import_bp.route('/cancel', methods=['POST'])
+@login_required
 def cancel():
     """処理をキャンセルするAPIエンドポイント"""
     # TODO: セッション管理機能の実装

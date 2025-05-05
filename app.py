@@ -1,4 +1,5 @@
-from flask import Flask, render_template, redirect, url_for, Markup
+from flask import Flask, render_template, redirect, url_for, Markup, send_from_directory, request, jsonify
+from flask_login import current_user, login_required
 from models.book import db, Book
 from models.genre import Genre
 from models.tag import Tag
@@ -7,6 +8,10 @@ from controllers.book_controller import book_bp
 from controllers.settings_controller import settings_bp
 from controllers.batch_controller import batch_bp
 from controllers.bulk_import_controller_new import bulk_import_bp
+from controllers.auth.auth_controller import auth_bp
+from auth_helper import init_login_manager, create_admin_user
+from helpers import get_cover_url, cover_image_exists, get_absolute_cover_path
+from direct_images import add_direct_image_routes
 import os
 import importlib.util
 import sys
@@ -17,7 +22,7 @@ def create_app():
     
     # 静的ファイルの設定を明示的に追加
     app.static_folder = 'static'
-    app.static_url_path = '/static'
+    app.static_url_path = ''
     print(f"静的ファイルフォルダ: {app.static_folder}")
     print(f"静的ファイルURLパス: {app.static_url_path}")
     
@@ -80,6 +85,10 @@ def create_app():
     app.register_blueprint(settings_bp)
     app.register_blueprint(batch_bp)
     app.register_blueprint(bulk_import_bp)
+    app.register_blueprint(auth_bp)
+    
+    # LoginManagerの初期化
+    login_manager = init_login_manager(app)
     
     # バーコード機能のオプション化
     # 環境変数で強制無効化されているか確認
@@ -119,11 +128,57 @@ def create_app():
         print('Gemini API ライブラリがインストールされていません')
         print('一括取り込みの高度な認識機能を使用するには、次のコマンドを実行してください：')
         print('pip install google-generativeai')
+        
+    # 直接表紙画像アクセス機能を追加
+    add_direct_image_routes(app)
+    
+    # 表紙画像の絶対パスルート
+    @app.route('/absolute-cover/<path:filename>')
+    def absolute_cover(filename):
+        """絶対パスで表紙画像を提供する"""
+        covers_dir = os.path.join(app.root_path, 'static', 'covers')
+        return send_from_directory(covers_dir, filename)
+    
+    # 参照された表紙画像の情報を取得するAPI
+    @app.route('/api/cover-info/<path:filename>')
+    def cover_info(filename):
+        """表紙画像の情報をJSONで返す"""
+        covers_dir = os.path.join(app.root_path, 'static', 'covers')
+        file_path = os.path.join(covers_dir, filename)
+        
+        if os.path.isfile(file_path):
+            # ファイルが存在する場合
+            # WindowsパスをURL形式に変換
+            url_path = file_path.replace("\\", "/")
+            return jsonify({
+                "filename": filename,
+                "exists": True,
+                "size": os.path.getsize(file_path),
+                "file_url": f"file:///{url_path}",
+                "direct_url": f"/direct-cover/{filename}",
+                "absolute_url": f"/absolute-cover/{filename}"
+            })
+        else:
+            # ファイルが存在しない場合
+            return jsonify({"filename": filename, "exists": False})
     
     # ルートルートの設定
     @app.route('/')
     def index():
         return redirect(url_for('books.index'))
+        
+    # ホームルートに認証を追加
+    @app.route('/home')
+    @login_required
+    def home():
+        return redirect(url_for('books.index'))
+    
+    # 静的ファイルルーティングの確認
+    @app.route('/covers/<path:filename>')
+    def custom_static_covers(filename):
+        """coversディレクトリのファイルを直接提供する"""
+        print(f"アクセスされたカバー画像: {filename}")
+        return app.send_static_file(os.path.join('covers', filename))
     
     # エラーハンドラの設定
     @app.errorhandler(404)
@@ -156,11 +211,16 @@ def create_app():
         # 収納場所の一覧
         locations = Location.query.order_by(Location.name).all()
         
+        # ヘルパー関数をテンプレートにエクスポート
         return {
             'book_count': book_count,
             'genres': genres,
             'tags': sorted_tags[:10],  # 上位10件のみ
-            'locations': locations
+            'locations': locations,
+            'get_cover_url': get_cover_url,
+            'cover_image_exists': cover_image_exists,
+            'get_absolute_cover_path': get_absolute_cover_path,
+            'current_user': current_user  # current_userをテンプレートに注入
         }
     
     # nl2brフィルタの登録
@@ -223,6 +283,14 @@ if __name__ == '__main__':
     # 環境変数を確認し、ホストIPとポートを設定（デフォルトは127.0.0.1:5000）
     host = os.environ.get('FLASK_HOST', '0.0.0.0')
     port = int(os.environ.get('FLASK_PORT', 5000))
+    
+    # 初期管理者ユーザーの作成
+    try:
+        admin_user = create_admin_user(app, 'admin', 'admin@example.com', 'password')
+        if admin_user:
+            print('初期管理者ユーザーが利用可能です')
+    except Exception as e:
+        print(f'管理者ユーザー作成エラー: {str(e)}')
     
     # アプリケーションの状態を表示
     print('='*50)
